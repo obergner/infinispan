@@ -36,6 +36,8 @@ import org.infinispan.stats.Stats;
 
 import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAResource;
+
+import java.io.OutputStream;
 import java.util.Collection;
 import java.util.List;
 
@@ -52,6 +54,11 @@ public abstract class AbstractDelegatingAdvancedCache<K, V> extends AbstractDele
    public AbstractDelegatingAdvancedCache(AdvancedCache<K, V> cache) {
       super(cache);
       this.cache = cache;
+   }
+   
+   @Override
+   public OutputStream writeToKey(K key) {
+      return this.cache.writeToKey(key);
    }
 
    @Override
