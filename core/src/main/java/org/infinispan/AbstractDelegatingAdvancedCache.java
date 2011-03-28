@@ -61,6 +61,11 @@ public abstract class AbstractDelegatingAdvancedCache<K, V> extends AbstractDele
    public StreamingHandler<K> getStreamingHandler() {
       return cache.getStreamingHandler();
    }
+   
+   @Override
+   public OutputStream writeToKey(K key) {
+      return cache.writeToKey(key);
+   }
 
    @Override
    public void addInterceptor(CommandInterceptor i, int position) {
