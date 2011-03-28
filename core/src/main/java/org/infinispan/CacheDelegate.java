@@ -80,6 +80,8 @@ import org.rhq.helpers.pluginAnnotations.agent.Operation;
 import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
+
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -660,6 +662,11 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
             ((MarshalledValue) e.getValue()).compact(true, true);
          }
       }
+   }
+   
+   @Override
+   public final OutputStream writeToKey(K key) {
+      throw new org.jboss.util.NotImplementedException("FIXME NYI writeToKey");
    }
 
    public RpcManager getRpcManager() {
