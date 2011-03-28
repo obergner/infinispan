@@ -34,6 +34,8 @@ import org.infinispan.remoting.rpc.RpcManager;
 import org.infinispan.stats.Stats;
 
 import javax.transaction.TransactionManager;
+
+import java.io.OutputStream;
 import java.util.Collection;
 import java.util.List;
 
@@ -44,6 +46,20 @@ import java.util.List;
  * @since 4.0
  */
 public interface AdvancedCache<K, V> extends Cache<K, V> {
+   
+   /**
+    * <em>Large Object Support</em>: Take the key {@code key} and return an {@link OutputStream
+    * <code>OutputStream</code>} the caller may subsequently use to store a <em>Large Object</em>
+    * under the given key in this {@code Cache}. A <em>Large Object</em> is defined as a value whose
+    * size may potentially exceed the heap size of any single JVM participating in an INFINISPAN
+    * cluster. Therefore, it cannot be stored in its entirety on a single node and needs to be split
+    * into chunks to be distributed across multiple nodes.
+    * 
+    * @param key
+    *           The {@code key} which to store the given <em>Large Object</em> under
+    * @return An {@code OutputStream} the caller may use to write his <em>Large Object</em> to
+    */
+   OutputStream writeToKey(K key);
 
    /**
     * A builder-style method that adds flags to any API call.  For example, consider the following code snippet:
