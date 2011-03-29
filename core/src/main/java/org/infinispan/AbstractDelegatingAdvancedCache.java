@@ -63,8 +63,8 @@ public abstract class AbstractDelegatingAdvancedCache<K, V> extends AbstractDele
    }
    
    @Override
-   public OutputStream writeToKey(K key) {
-      return cache.writeToKey(key);
+   public void writeToKey(K key, InputStream largeObject) {
+      cache.writeToKey(key, largeObject);
    }
 
    @Override

@@ -42,6 +42,7 @@ import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
 import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
+import org.infinispan.commands.write.WriteLargeObjectToKeyCommand;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.context.impl.TxInvocationContext;
 
@@ -59,6 +60,10 @@ public abstract class AbstractVisitor implements Visitor {
    // write commands
 
    public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command) throws Throwable {
+      return handleDefault(ctx, command);
+   }
+   
+   public Object visitWriteLargeObjectToKeyCommand(InvocationContext ctx, WriteLargeObjectToKeyCommand command) throws Throwable {
       return handleDefault(ctx, command);
    }
    

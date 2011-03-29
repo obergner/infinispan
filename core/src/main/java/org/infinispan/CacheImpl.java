@@ -90,6 +90,7 @@ import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAResource;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Collection;
@@ -729,8 +730,8 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    }
    
    @Override
-   public StreamingHandler<K> getStreamingHandler() {
-      return streamingHandler;
+   public void writeToKey(K key, InputStream largeObject) {
+      // TODO: Implement;
    }
 
    public void compact() {
@@ -745,8 +746,8 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    }
    
    @Override
-   public final OutputStream writeToKey(K key) {
-      throw new org.jboss.util.NotImplementedException("FIXME NYI writeToKey");
+   public StreamingHandler<K> getStreamingHandler() {
+      return streamingHandler;
    }
 
    public RpcManager getRpcManager() {
