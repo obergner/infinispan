@@ -87,6 +87,7 @@ import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAResource;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Collection;
@@ -129,7 +130,8 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    private DataContainer dataContainer;
    private static final Log log = LogFactory.getLog(CacheImpl.class);
    private EmbeddedCacheManager cacheManager;
-   // this is never used here but should be injected - this is a hack to make sure the StateTransferManager is properly constructed if needed.
+   // this is never used here but should be injected - this is a hack to make sure the
+   // StateTransferManager is properly constructed if needed.
    private StateTransferManager stateTransferManager;
    // as above for ResponseGenerator
    private ResponseGenerator responseGenerator;
@@ -151,8 +153,9 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    }
 
    @Inject
-   public void injectDependencies(EvictionManager evictionManager,
-                                  InvocationContextContainer icc,
+   public void injectDependencies(
+            EvictionManager evictionManager,
+            InvocationContextContainer icc,
                                   CommandsFactory commandsFactory,
                                   InterceptorChain interceptorChain,
                                   Configuration configuration,
@@ -721,6 +724,11 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
       return this;
    }
 
+   @Override
+   public void writeToKey(K key, InputStream largeObject) {
+      // TODO: Implement;
+   }
+
    public void compact() {
       for (InternalCacheEntry e : dataContainer) {
          if (e.getKey() instanceof MarshalledValue) {
@@ -730,11 +738,6 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
             ((MarshalledValue) e.getValue()).compact(true, true);
          }
       }
-   }
-   
-   @Override
-   public final OutputStream writeToKey(K key) {
-      throw new org.jboss.util.NotImplementedException("FIXME NYI writeToKey");
    }
 
    public RpcManager getRpcManager() {

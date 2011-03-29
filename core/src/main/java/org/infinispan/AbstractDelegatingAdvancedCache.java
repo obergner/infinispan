@@ -37,6 +37,7 @@ import org.infinispan.stats.Stats;
 import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAResource;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Collection;
 import java.util.List;
@@ -57,8 +58,8 @@ public abstract class AbstractDelegatingAdvancedCache<K, V> extends AbstractDele
    }
    
    @Override
-   public OutputStream writeToKey(K key) {
-      return this.cache.writeToKey(key);
+   public void writeToKey(K key, InputStream largeObject) {
+      this.cache.writeToKey(key, largeObject);
    }
 
    @Override
