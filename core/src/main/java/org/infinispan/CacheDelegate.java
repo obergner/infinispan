@@ -81,6 +81,7 @@ import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Collection;
@@ -104,7 +105,7 @@ import static org.infinispan.context.Flag.*;
  */
 @SurvivesRestarts
 @MBean(objectName = CacheDelegate.OBJECT_NAME, description = "Component that represents an individual cache instance.")
-public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCache<K, V> {
+public class CacheDelegate<K, V> extends CacheSupport<K, V> implements AdvancedCache<K, V> {
    public static final String OBJECT_NAME = "Cache";
    protected InvocationContextContainer icc;
    protected CommandsFactory commandsFactory;
@@ -121,7 +122,8 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
    private DataContainer dataContainer;
    private static final Log log = LogFactory.getLog(CacheDelegate.class);
    private EmbeddedCacheManager cacheManager;
-   // this is never used here but should be injected - this is a hack to make sure the StateTransferManager is properly constructed if needed.
+   // this is never used here but should be injected - this is a hack to make sure the
+   // StateTransferManager is properly constructed if needed.
    private StateTransferManager stateTransferManager;
    // as above for ResponseGenerator
    private ResponseGenerator responseGenerator;
@@ -134,20 +136,24 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
    }
 
    @Inject
-   public void injectDependencies(EvictionManager evictionManager,
-                                  InvocationContextContainer icc,
-                                  CommandsFactory commandsFactory,
-                                  InterceptorChain interceptorChain,
-                                  Configuration configuration,
-                                  CacheNotifier notifier,
-                                  ComponentRegistry componentRegistry,
-                                  TransactionManager transactionManager,
-                                  BatchContainer batchContainer,
-                                  RpcManager rpcManager, DataContainer dataContainer,
-                                  StreamingMarshaller marshaller, ResponseGenerator responseGenerator,
-                                  DistributionManager distributionManager,
-                                  EmbeddedCacheManager cacheManager, StateTransferManager stateTransferManager,
-                                  @ComponentName(KnownComponentNames.ASYNC_TRANSPORT_EXECUTOR) ExecutorService asyncExecutor) {
+   public void injectDependencies(
+            EvictionManager evictionManager,
+            InvocationContextContainer icc,
+            CommandsFactory commandsFactory,
+            InterceptorChain interceptorChain,
+            Configuration configuration,
+            CacheNotifier notifier,
+            ComponentRegistry componentRegistry,
+            TransactionManager transactionManager,
+            BatchContainer batchContainer,
+            RpcManager rpcManager,
+            DataContainer dataContainer,
+            StreamingMarshaller marshaller,
+            ResponseGenerator responseGenerator,
+            DistributionManager distributionManager,
+            EmbeddedCacheManager cacheManager,
+            StateTransferManager stateTransferManager,
+            @ComponentName(KnownComponentNames.ASYNC_TRANSPORT_EXECUTOR) ExecutorService asyncExecutor) {
       this.commandsFactory = commandsFactory;
       this.invoker = interceptorChain;
       this.config = configuration;
@@ -177,7 +183,7 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
       if (data == null) {
          throw new NullPointerException("Expected map cannot be null");
       }
-      for (Object key: data.keySet()) {
+      for (Object key : data.keySet()) {
          if (key == null) {
             throw new NullPointerException("Null keys are not supported!");
          }
@@ -263,20 +269,18 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
             transactionManager.suspend();
 
          // if the entry exists then this should be a no-op.
-         withFlags(FAIL_SILENTLY, FORCE_ASYNCHRONOUS, ZERO_LOCK_ACQUISITION_TIMEOUT, PUT_FOR_EXTERNAL_READ).putIfAbsent(key, value);
-      }
-      catch (Exception e) {
+         withFlags(FAIL_SILENTLY, FORCE_ASYNCHRONOUS, ZERO_LOCK_ACQUISITION_TIMEOUT,
+                  PUT_FOR_EXTERNAL_READ).putIfAbsent(key, value);
+      } catch (Exception e) {
          if (log.isDebugEnabled()) {
             log.debug("Caught exception while doing putForExternalRead()", e);
          }
-      }
-      finally {
+      } finally {
          try {
             if (ongoingTransaction != null) {
                transactionManager.resume(ongoingTransaction);
             }
-         }
-         catch (Exception e) {
+         } catch (Exception e) {
             log.debug("Had problems trying to resume a transaction after putForExternalRead()", e);
          }
       }
@@ -306,7 +310,8 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
    }
 
    private InvocationContext getInvocationContext(boolean forceNonTransactional) {
-      InvocationContext ctx = forceNonTransactional ? icc.createNonTxInvocationContext() : icc.createInvocationContext();
+      InvocationContext ctx = forceNonTransactional ? icc.createNonTxInvocationContext() : icc
+               .createInvocationContext();
       return setInvocationContextFlags(ctx);
    }
 
@@ -334,7 +339,8 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
          throw new IllegalArgumentException("Cannot lock empty list of keys");
       }
       InvocationContext ctx = getInvocationContext(false);
-      LockControlCommand command = commandsFactory.buildLockControlCommand(keys, false, ctx.getFlags());
+      LockControlCommand command = commandsFactory.buildLockControlCommand(keys, false,
+               ctx.getFlags());
       return (Boolean) invoker.invoke(ctx, command);
    }
 
@@ -362,11 +368,13 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
       invoker.addInterceptor(i, position);
    }
 
-   public void addInterceptorAfter(CommandInterceptor i, Class<? extends CommandInterceptor> afterInterceptor) {
+   public void addInterceptorAfter(CommandInterceptor i,
+            Class<? extends CommandInterceptor> afterInterceptor) {
       invoker.addInterceptorAfter(i, afterInterceptor);
    }
 
-   public void addInterceptorBefore(CommandInterceptor i, Class<? extends CommandInterceptor> beforeInterceptor) {
+   public void addInterceptorBefore(CommandInterceptor i,
+            Class<? extends CommandInterceptor> beforeInterceptor) {
       invoker.addInterceptorBefore(i, beforeInterceptor);
    }
 
@@ -395,8 +403,8 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
    }
 
    /**
-    * Returns String representation of ComponentStatus enumeration in order to avoid class not found exceptions in JMX
-    * tools that don't have access to infinispan classes.
+    * Returns String representation of ComponentStatus enumeration in order to avoid class not found
+    * exceptions in JMX tools that don't have access to infinispan classes.
     */
    @ManagedAttribute(description = "Returns the cache status")
    @Metric(displayName = "Cache status", dataType = DataType.TRAIT, displayType = DisplayType.SUMMARY)
@@ -406,14 +414,16 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
 
    public boolean startBatch() {
       if (!config.isInvocationBatchingEnabled()) {
-         throw new ConfigurationException("Invocation batching not enabled in current configuration!  Please use the <invocationBatching /> element.");
+         throw new ConfigurationException(
+                  "Invocation batching not enabled in current configuration!  Please use the <invocationBatching /> element.");
       }
       return batchContainer.startBatch();
    }
 
    public void endBatch(boolean successful) {
       if (!config.isInvocationBatchingEnabled()) {
-         throw new ConfigurationException("Invocation batching not enabled in current configuration!  Please use the <invocationBatching /> element.");
+         throw new ConfigurationException(
+                  "Invocation batching not enabled in current configuration!  Please use the <invocationBatching /> element.");
       }
       batchContainer.endBatch(successful);
    }
@@ -428,7 +438,8 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
    @ManagedAttribute(description = "Returns the cache name")
    @Metric(displayName = "Cache name", dataType = DataType.TRAIT, displayType = DisplayType.SUMMARY)
    public String getCacheName() {
-      String name = getName().equals(CacheContainer.DEFAULT_CACHE_NAME) ? "Default Cache" : getName();
+      String name = getName().equals(CacheContainer.DEFAULT_CACHE_NAME) ? "Default Cache"
+               : getName();
       return name + "(" + getConfiguration().getCacheModeString().toLowerCase() + ")";
    }
 
@@ -447,7 +458,11 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
 
    @Override
    public String toString() {
-      return "Cache '" + name + "'@" + (config.getCacheMode().isClustered() ? getCacheManager().getAddress() : Util.hexIdHashCode(this));
+      return "Cache '"
+               + name
+               + "'@"
+               + (config.getCacheMode().isClustered() ? getCacheManager().getAddress() : Util
+                        .hexIdHashCode(this));
    }
 
    public BatchContainer getBatchContainer() {
@@ -475,55 +490,67 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
    }
 
    @SuppressWarnings("unchecked")
-   public final V put(K key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdleTime, TimeUnit idleTimeUnit) {
+   public final V put(K key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdleTime,
+            TimeUnit idleTimeUnit) {
       assertKeyNotNull(key);
       InvocationContext ctx = getInvocationContext(false);
-      PutKeyValueCommand command = commandsFactory.buildPutKeyValueCommand(key, value, lifespanUnit.toMillis(lifespan), idleTimeUnit.toMillis(maxIdleTime), ctx.getFlags());
+      PutKeyValueCommand command = commandsFactory.buildPutKeyValueCommand(key, value,
+               lifespanUnit.toMillis(lifespan), idleTimeUnit.toMillis(maxIdleTime), ctx.getFlags());
       return (V) invoker.invoke(ctx, command);
    }
 
    @SuppressWarnings("unchecked")
-   public final V putIfAbsent(K key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdleTime, TimeUnit idleTimeUnit) {
+   public final V putIfAbsent(K key, V value, long lifespan, TimeUnit lifespanUnit,
+            long maxIdleTime, TimeUnit idleTimeUnit) {
       assertKeyNotNull(key);
       InvocationContext ctx = getInvocationContext(false);
-      PutKeyValueCommand command = commandsFactory.buildPutKeyValueCommand(key, value, lifespanUnit.toMillis(lifespan), idleTimeUnit.toMillis(maxIdleTime), ctx.getFlags());
+      PutKeyValueCommand command = commandsFactory.buildPutKeyValueCommand(key, value,
+               lifespanUnit.toMillis(lifespan), idleTimeUnit.toMillis(maxIdleTime), ctx.getFlags());
       command.setPutIfAbsent(true);
       return (V) invoker.invoke(ctx, command);
    }
 
-   public final void putAll(Map<? extends K, ? extends V> map, long lifespan, TimeUnit lifespanUnit, long maxIdleTime, TimeUnit idleTimeUnit) {
+   public final void putAll(Map<? extends K, ? extends V> map, long lifespan,
+            TimeUnit lifespanUnit, long maxIdleTime, TimeUnit idleTimeUnit) {
       assertKeysNotNull(map);
       InvocationContext ctx = getInvocationContext(false);
-      PutMapCommand command = commandsFactory.buildPutMapCommand(map, lifespanUnit.toMillis(lifespan), idleTimeUnit.toMillis(maxIdleTime), ctx.getFlags());
+      PutMapCommand command = commandsFactory.buildPutMapCommand(map,
+               lifespanUnit.toMillis(lifespan), idleTimeUnit.toMillis(maxIdleTime), ctx.getFlags());
       invoker.invoke(ctx, command);
    }
 
    @SuppressWarnings("unchecked")
-   public final V replace(K key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdleTime, TimeUnit idleTimeUnit) {
+   public final V replace(K key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdleTime,
+            TimeUnit idleTimeUnit) {
       assertKeyNotNull(key);
       InvocationContext ctx = getInvocationContext(false);
-      ReplaceCommand command = commandsFactory.buildReplaceCommand(key, null, value, lifespanUnit.toMillis(lifespan), idleTimeUnit.toMillis(maxIdleTime), ctx.getFlags());
+      ReplaceCommand command = commandsFactory.buildReplaceCommand(key, null, value,
+               lifespanUnit.toMillis(lifespan), idleTimeUnit.toMillis(maxIdleTime), ctx.getFlags());
       return (V) invoker.invoke(ctx, command);
 
    }
 
-   public final boolean replace(K key, V oldValue, V value, long lifespan, TimeUnit lifespanUnit, long maxIdleTime, TimeUnit idleTimeUnit) {
+   public final boolean replace(K key, V oldValue, V value, long lifespan, TimeUnit lifespanUnit,
+            long maxIdleTime, TimeUnit idleTimeUnit) {
       assertKeyNotNull(key);
       InvocationContext ctx = getInvocationContext(false);
-      ReplaceCommand command = commandsFactory.buildReplaceCommand(key, oldValue, value, lifespanUnit.toMillis(lifespan), idleTimeUnit.toMillis(maxIdleTime), ctx.getFlags());
+      ReplaceCommand command = commandsFactory.buildReplaceCommand(key, oldValue, value,
+               lifespanUnit.toMillis(lifespan), idleTimeUnit.toMillis(maxIdleTime), ctx.getFlags());
       return (Boolean) invoker.invoke(ctx, command);
    }
 
    /**
-    * Wraps a return value as a future, if needed.  Typically, if the stack, operation and configuration support
-    * handling of futures, this retval is already a future in which case this method does nothing except cast to
-    * future.
+    * Wraps a return value as a future, if needed. Typically, if the stack, operation and
+    * configuration support handling of futures, this retval is already a future in which case this
+    * method does nothing except cast to future.
     * <p/>
-    * Otherwise, a future wrapper is created, which has already completed and simply returns the retval.  This is used
-    * for API consistency.
-    *
-    * @param retval return value to wrap
-    * @param <X>    contents of the future
+    * Otherwise, a future wrapper is created, which has already completed and simply returns the
+    * retval. This is used for API consistency.
+    * 
+    * @param retval
+    *           return value to wrap
+    * @param <X>
+    *           contents of the future
     * @return a future
     */
    @SuppressWarnings("unchecked")
@@ -540,19 +567,23 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
       }
    }
 
-   public final NotifyingFuture<V> putAsync(K key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
+   public final NotifyingFuture<V> putAsync(K key, V value, long lifespan, TimeUnit lifespanUnit,
+            long maxIdle, TimeUnit maxIdleUnit) {
       assertKeyNotNull(key);
       InvocationContext ctx = getInvocationContext(false);
       ctx.setUseFutureReturnType(true);
-      PutKeyValueCommand command = commandsFactory.buildPutKeyValueCommand(key, value, lifespanUnit.toMillis(lifespan), maxIdleUnit.toMillis(maxIdle), ctx.getFlags());
+      PutKeyValueCommand command = commandsFactory.buildPutKeyValueCommand(key, value,
+               lifespanUnit.toMillis(lifespan), maxIdleUnit.toMillis(maxIdle), ctx.getFlags());
       return wrapInFuture(invoker.invoke(ctx, command));
    }
 
-   public final NotifyingFuture<Void> putAllAsync(Map<? extends K, ? extends V> data, long lifespan, TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
+   public final NotifyingFuture<Void> putAllAsync(Map<? extends K, ? extends V> data,
+            long lifespan, TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
       assertKeysNotNull(data);
       InvocationContext ctx = getInvocationContext(false);
       ctx.setUseFutureReturnType(true);
-      PutMapCommand command = commandsFactory.buildPutMapCommand(data, lifespanUnit.toMillis(lifespan), maxIdleUnit.toMillis(maxIdle), ctx.getFlags());
+      PutMapCommand command = commandsFactory.buildPutMapCommand(data,
+               lifespanUnit.toMillis(lifespan), maxIdleUnit.toMillis(maxIdle), ctx.getFlags());
       return wrapInFuture(invoker.invoke(ctx, command));
    }
 
@@ -563,11 +594,13 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
       return wrapInFuture(invoker.invoke(ctx, command));
    }
 
-   public final NotifyingFuture<V> putIfAbsentAsync(K key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
+   public final NotifyingFuture<V> putIfAbsentAsync(K key, V value, long lifespan,
+            TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
       assertKeyNotNull(key);
       InvocationContext ctx = getInvocationContext(false);
       ctx.setUseFutureReturnType(true);
-      PutKeyValueCommand command = commandsFactory.buildPutKeyValueCommand(key, value, lifespanUnit.toMillis(lifespan), maxIdleUnit.toMillis(maxIdle), ctx.getFlags());
+      PutKeyValueCommand command = commandsFactory.buildPutKeyValueCommand(key, value,
+               lifespanUnit.toMillis(lifespan), maxIdleUnit.toMillis(maxIdle), ctx.getFlags());
       command.setPutIfAbsent(true);
       return wrapInFuture(invoker.invoke(ctx, command));
    }
@@ -588,19 +621,23 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
       return wrapInFuture(invoker.invoke(ctx, command));
    }
 
-   public final NotifyingFuture<V> replaceAsync(K key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
+   public final NotifyingFuture<V> replaceAsync(K key, V value, long lifespan,
+            TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
       assertKeyNotNull(key);
       InvocationContext ctx = getInvocationContext(false);
       ctx.setUseFutureReturnType(true);
-      ReplaceCommand command = commandsFactory.buildReplaceCommand(key, null, value, lifespanUnit.toMillis(lifespan), maxIdleUnit.toMillis(maxIdle), ctx.getFlags());
+      ReplaceCommand command = commandsFactory.buildReplaceCommand(key, null, value,
+               lifespanUnit.toMillis(lifespan), maxIdleUnit.toMillis(maxIdle), ctx.getFlags());
       return wrapInFuture(invoker.invoke(ctx, command));
    }
 
-   public final NotifyingFuture<Boolean> replaceAsync(K key, V oldValue, V newValue, long lifespan, TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
+   public final NotifyingFuture<Boolean> replaceAsync(K key, V oldValue, V newValue, long lifespan,
+            TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
       assertKeyNotNull(key);
       InvocationContext ctx = getInvocationContext(false);
       ctx.setUseFutureReturnType(true);
-      ReplaceCommand command = commandsFactory.buildReplaceCommand(key, oldValue, newValue, lifespanUnit.toMillis(lifespan), maxIdleUnit.toMillis(maxIdle), ctx.getFlags());
+      ReplaceCommand command = commandsFactory.buildReplaceCommand(key, oldValue, newValue,
+               lifespanUnit.toMillis(lifespan), maxIdleUnit.toMillis(maxIdle), ctx.getFlags());
       return wrapInFuture(invoker.invoke(ctx, command));
    }
 
@@ -612,7 +649,8 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
 
       // Optimisations to not start a new thread:
       // 1. If distribution and no cache loader, and either SKIP_REMOTE_LOOKUP or key is local,
-      // 2. If no cache loader config, or config is present and, SKIP_CACHE_STORE or SKIP_CACHE_LOAD flags are passed
+      // 2. If no cache loader config, or config is present and, SKIP_CACHE_STORE or SKIP_CACHE_LOAD
+      // flags are passed
       boolean isSkipLoader = isSkipLoader(flags);
       if (isDistributedAndLocal(flags, key, isSkipLoader) || isSkipLoader) {
          return wrapInFuture(get(key));
@@ -638,19 +676,26 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
 
    private boolean isDistributedAndLocal(EnumSet<Flag> flags, K key, boolean isSkipLoader) {
       return config.getCacheMode().isDistributed()
-            && isSkipLoader
-            && ((flags != null && flags.contains(Flag.SKIP_REMOTE_LOOKUP))
-                      || distributionManager.getLocality(key).isLocal());
+               && isSkipLoader
+               && ((flags != null && flags.contains(Flag.SKIP_REMOTE_LOOKUP)) || distributionManager
+                        .getLocality(key).isLocal());
    }
 
    private boolean isSkipLoader(EnumSet<Flag> flags) {
-      boolean hasCacheLoaderConfig = config.getCacheLoaderManagerConfig().getFirstCacheLoaderConfig() != null;
+      boolean hasCacheLoaderConfig = config.getCacheLoaderManagerConfig()
+               .getFirstCacheLoaderConfig() != null;
       return !hasCacheLoaderConfig
-            || (hasCacheLoaderConfig && flags != null && (flags.contains(Flag.SKIP_CACHE_LOAD) || flags.contains(Flag.SKIP_CACHE_STORE)));
+               || (hasCacheLoaderConfig && flags != null && (flags.contains(Flag.SKIP_CACHE_LOAD) || flags
+                        .contains(Flag.SKIP_CACHE_STORE)));
    }
 
    public AdvancedCache<K, V> getAdvancedCache() {
       return this;
+   }
+
+   @Override
+   public void writeToKey(K key, InputStream largeObject) {
+      // TODO: Implement;
    }
 
    public void compact() {
@@ -662,11 +707,6 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
             ((MarshalledValue) e.getValue()).compact(true, true);
          }
       }
-   }
-   
-   @Override
-   public final OutputStream writeToKey(K key) {
-      throw new org.jboss.util.NotImplementedException("FIXME NYI writeToKey");
    }
 
    public RpcManager getRpcManager() {
@@ -697,7 +737,8 @@ public class CacheDelegate<K, V> extends CacheSupport<K,V> implements AdvancedCa
       EnumSet<Flag> flags;
 
       private PreInvocationContext(Flag[] flags) {
-         this.flags = flags != null && flags.length > 0 ? EnumSet.copyOf(Arrays.asList(flags)) : EnumSet.noneOf(Flag.class);
+         this.flags = flags != null && flags.length > 0 ? EnumSet.copyOf(Arrays.asList(flags))
+                  : EnumSet.noneOf(Flag.class);
       }
 
       private PreInvocationContext add(Flag[] newFlags) {

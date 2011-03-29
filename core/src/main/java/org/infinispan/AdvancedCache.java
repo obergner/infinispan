@@ -13,7 +13,7 @@ import org.infinispan.stats.Stats;
 
 import javax.transaction.TransactionManager;
 
-import java.io.OutputStream;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
 
@@ -26,18 +26,21 @@ import java.util.List;
 public interface AdvancedCache<K, V> extends Cache<K, V> {
    
    /**
-    * <em>Large Object Support</em>: Take the key {@code key} and return an {@link OutputStream
-    * <code>OutputStream</code>} the caller may subsequently use to store a <em>Large Object</em>
-    * under the given key in this {@code Cache}. A <em>Large Object</em> is defined as a value whose
-    * size may potentially exceed the heap size of any single JVM participating in an INFINISPAN
-    * cluster. Therefore, it cannot be stored in its entirety on a single node and needs to be split
-    * into chunks to be distributed across multiple nodes.
+    * <em>Large Object Support</em>: Take the key {@code key} and the supplied
+    * {@link java.io.InputStream <code>largeObject</code>} and store the latter under the given key.
+    * A <em>Large Object</em> is defined as a value whose size may potentially exceed the heap size
+    * of any single JVM participating in an INFINISPAN cluster. Therefore, it cannot be stored in
+    * its entirety on a single node and needs to be split into chunks to be distributed across
+    * multiple nodes.
     * 
     * @param key
-    *           The {@code key} which to store the given <em>Large Object</em> under
-    * @return An {@code OutputStream} the caller may use to write his <em>Large Object</em> to
+    *           The {@code key} which to store the given <code>largeObject</code> under
+    * @param largeObject
+    *           The <em>Large Object</em> to store, represented by an <code>InputStream</code>
+    *           
+    * @since 5.1
     */
-   OutputStream writeToKey(K key);
+   void writeToKey(K key, InputStream largeObject);
 
    /**
     * A builder-style method that adds flags to any API call.  For example, consider the following code snippet:
