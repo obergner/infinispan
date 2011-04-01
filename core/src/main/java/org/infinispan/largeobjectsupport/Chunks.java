@@ -23,6 +23,8 @@ package org.infinispan.largeobjectsupport;
 
 import net.jcip.annotations.NotThreadSafe;
 
+import org.infinispan.config.Configuration;
+import org.infinispan.distribution.DistributionManager;
 import org.infinispan.remoting.transport.Address;
 
 import java.io.ByteArrayOutputStream;
@@ -52,24 +54,27 @@ public class Chunks<K> implements Iterable<Chunk> {
 
    private final long maxChunkSizeInBytes;
 
+   /**
+    * The distributionManager: used to obtain a chunkKey for each new chunk.
+    */
+   private final DistributionManager distributionManager;
+
+   private final Configuration configuration;
+
    private final Set<ChunkKeyNodeAddressTuple> alreadyUsedChunkKeysAndNodeAddresses = new HashSet<ChunkKeyNodeAddressTuple>();
 
    private long numberOfAlreadyReadBytes = 0L;
 
-   /**
-    * Create a new Chunks.
-    * 
-    * @param largeObjectKey
-    * @param largeObject
-    * @param maxChunkSizeInBytes
-    */
-   public Chunks(K largeObjectKey, InputStream largeObject, long maxChunkSizeInBytes) {
+   public Chunks(K largeObjectKey, InputStream largeObject, long maxChunkSizeInBytes,
+            DistributionManager distributionManager, Configuration configuration) {
       if (!largeObject.markSupported())
          throw new IllegalArgumentException("The supplied LargeObject InputStream does not "
                   + "support mark(). This, however, is required.");
       this.largeObjectKey = largeObjectKey;
       this.largeObject = largeObject;
       this.maxChunkSizeInBytes = maxChunkSizeInBytes;
+      this.distributionManager = distributionManager;
+      this.configuration = configuration;
    }
 
    @Override
@@ -105,6 +110,18 @@ public class Chunks<K> implements Iterable<Chunk> {
          throw new RuntimeException("Failed to read from/reset LargeObject InputStream: "
                   + e.getMessage(), e);
       }
+   }
+
+   private long maximumLargeObjectSizeInBytes() {
+      int numberOfNodeInCluster = distributionManager.getTopologyInfo().getAllTopologyInfo().size();
+      if (numberOfNodeInCluster == 0)
+         throw new IllegalStateException("The number of nodes in the cluster is 0");
+
+      int replicationFactor = configuration.getNumOwners();
+      if (replicationFactor < 1)
+         throw new IllegalStateException("The replication factor is less than 1");
+
+      return (numberOfNodeInCluster * maxChunkSizeInBytes) / replicationFactor;
    }
 
    private ChunkKeyNodeAddressTuple nextChunkKeyAndNodeAddress() {
@@ -157,6 +174,15 @@ public class Chunks<K> implements Iterable<Chunk> {
                numberOfAlreadyReadBytes += n;
                numberOfBytesToReadNext = (maxChunkSizeInBytes - chunkData.size() >= effectiveBufferSize) ? effectiveBufferSize
                         : (int) (maxChunkSizeInBytes - chunkData.size());
+
+               // Check if our LargeObject is bigger than allowed
+               if (chunkData.size() > maximumLargeObjectSizeInBytes())
+                  throw new LargeObjectExceedsSizeLimitException(
+                           "The number of bytes already read [" + numberOfAlreadyReadBytes
+                                    + "] exceeds the size limit ["
+                                    + maximumLargeObjectSizeInBytes() + "] for large objects",
+                           maxChunkSizeInBytes, distributionManager.getTopologyInfo()
+                                    .getAllTopologyInfo().size(), configuration.getNumOwners());
             }
 
             ChunkKeyNodeAddressTuple chunkKeyAndNodeAddress = nextChunkKeyAndNodeAddress();
