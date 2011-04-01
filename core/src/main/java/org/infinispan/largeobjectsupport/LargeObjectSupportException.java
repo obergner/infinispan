@@ -21,46 +21,52 @@
  */
 package org.infinispan.largeobjectsupport;
 
+import org.infinispan.CacheException;
+
 /**
- * A user attempted to store a <em>Large Object</em> under a key that is currently used to store a
- * different object that is <strong>not</strong> a <em>Large Object</em>.
+ * Abstract base class for all <code>Exceptions</code> signaling an error when processing a
+ * <code>LargeObjec</code>.
  * 
  * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
  * @since 5.1
  */
-public class KeyAlreadyUsedAsNonLargeObjectKeyException extends LargeObjectSupportException {
+public abstract class LargeObjectSupportException extends CacheException {
 
    /** The serialVersionUID */
-   private static final long serialVersionUID = -4393900538601965496L;
-
-   private final Object key;
+   private static final long serialVersionUID = -1580536765480016646L;
 
    /**
-    * Create a new KeyAlreadyUsedAsNonLargeObjectKeyException.
+    * Create a new LargeObjectSupportException.
     * 
-    * @param key
     */
-   public KeyAlreadyUsedAsNonLargeObjectKeyException(Object key) {
-      this(null, key);
+   public LargeObjectSupportException() {
    }
 
    /**
-    * Create a new KeyAlreadyUsedAsNonLargeObjectKeyException.
+    * Create a new LargeObjectSupportException.
+    * 
+    * @param cause
+    */
+   public LargeObjectSupportException(Throwable cause) {
+      super(cause);
+   }
+
+   /**
+    * Create a new LargeObjectSupportException.
     * 
     * @param msg
-    * @param key
     */
-   public KeyAlreadyUsedAsNonLargeObjectKeyException(String msg, Object key) {
+   public LargeObjectSupportException(String msg) {
       super(msg);
-      this.key = key;
    }
 
    /**
-    * Get the key.
+    * Create a new LargeObjectSupportException.
     * 
-    * @return the key.
+    * @param msg
+    * @param cause
     */
-   public Object getKey() {
-      return key;
+   public LargeObjectSupportException(String msg, Throwable cause) {
+      super(msg, cause);
    }
 }
