@@ -21,8 +21,6 @@
  */
 package org.infinispan.largeobjectsupport;
 
-import org.infinispan.CacheException;
-
 /**
  * A user attempted to store a <em>Large Object</em> under a key that is currently used to store a
  * different object that is <strong>not</strong> a <em>Large Object</em>.
@@ -30,7 +28,7 @@ import org.infinispan.CacheException;
  * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
  * @since 5.1
  */
-public class KeyAlreadyUsedAsNonLargeObjectKeyException extends CacheException {
+public class KeyAlreadyUsedAsNonLargeObjectKeyException extends LargeObjectSupportException {
 
    /** The serialVersionUID */
    private static final long serialVersionUID = -4393900538601965496L;
