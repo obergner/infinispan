@@ -23,23 +23,48 @@ package org.infinispan.largeobjectsupport;
 
 import net.jcip.annotations.NotThreadSafe;
 
+import org.infinispan.Cache;
 import org.infinispan.config.Configuration;
 import org.infinispan.distribution.DistributionManager;
+import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.remoting.transport.Address;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.Random;
 
 /**
  * <p>
  * Represents a given <em>Large Object</em>'s collection of {@link Chunk <code>Chunk</code>}s.
+ * </p>
+ * <p>
+ * This class is probably <strong>the</strong> single most important class for realizing
+ * INFINISPAN's <code>LargeObjectSupport</code>. Its responsibilities are manifold:
+ * <ol>
+ * <li>
+ * Divide a <em>Large Object</em> into {@link Chunk <code>Chunk</code>}s.</li>
+ * <li>
+ * Enable lazy iteration over all {@link Chunk <code>Chunk</code>}s a <em>Large Object</em> is
+ * divided into. Here, &quot;lazy&quot; refers to the fact that each <code>Chunk</code> is created
+ * on demand. Moreover does this class <strong>not</strong> hold references to any
+ * <code>Chunk</code>s already produced since otherwise it would threaten to use up the heap space.</li>
+ * <li>
+ * Assign a unique <code>chunk key</code> to each newly produced <code>Chunk</code>.</li>
+ * <li>
+ * Make sure that no two <code>Chunk</code>s are stored on the same node in the INFINISPAN cluster.</li>
+ * </ol>
+ * </p>
+ * <p>
+ * <strong>IMPORTANT</strong> Each <code>Chunks</code> instance may be used only
+ * <strong>once</strong>. More precisely, it disallows iterating over a <em>Large Object</em> more
+ * that once. If a client violates this rule, an <code>IllegalStateException</code> will be thrown.<br/>
+ * The reason for this restriction is that thus INFINISPAN will avoid to read a
+ * <em>Large Object</em> more often than absolutely necessary.
  * </p>
  * 
  * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
@@ -59,14 +84,24 @@ public class Chunks<K> implements Iterable<Chunk> {
     */
    private final DistributionManager distributionManager;
 
+   /**
+    * The configuration: used to obtain replication factor/num owners.
+    */
    private final Configuration configuration;
 
-   private final Set<ChunkKeyNodeAddressTuple> alreadyUsedChunkKeysAndNodeAddresses = new HashSet<ChunkKeyNodeAddressTuple>();
+   /**
+    * Embedded cache manager: needed to check whether a given chunk key has already been used before
+    * for a different object.
+    */
+   private final EmbeddedCacheManager embeddedCacheManager;
+
+   private final ChunkKeyProducer chunkKeyProducer = new ChunkKeyProducer();
 
    private long numberOfAlreadyReadBytes = 0L;
 
    public Chunks(K largeObjectKey, InputStream largeObject, long maxChunkSizeInBytes,
-            DistributionManager distributionManager, Configuration configuration) {
+            DistributionManager distributionManager, Configuration configuration,
+            EmbeddedCacheManager embeddedCacheManager) {
       if (!largeObject.markSupported())
          throw new IllegalArgumentException("The supplied LargeObject InputStream does not "
                   + "support mark(). This, however, is required.");
@@ -75,6 +110,7 @@ public class Chunks<K> implements Iterable<Chunk> {
       this.maxChunkSizeInBytes = maxChunkSizeInBytes;
       this.distributionManager = distributionManager;
       this.configuration = configuration;
+      this.embeddedCacheManager = embeddedCacheManager;
    }
 
    @Override
@@ -91,10 +127,7 @@ public class Chunks<K> implements Iterable<Chunk> {
          throw new IllegalStateException(
                   "Cannot create LargeObjectMetadata: this Chunks object has "
                            + "not yet read all bytes from its LargeObject.");
-      List<String> allChunkKeys = new ArrayList<String>();
-      for (ChunkKeyNodeAddressTuple chunkKeyAndNodeAddress : alreadyUsedChunkKeysAndNodeAddresses) {
-         allChunkKeys.add(chunkKeyAndNodeAddress.chunkKey);
-      }
+      List<String> allChunkKeys = chunkKeyProducer.chunkKeys();
 
       return new LargeObjectMetadata<K>(largeObjectKey, numberOfAlreadyReadBytes,
                allChunkKeys.toArray(new String[allChunkKeys.size()]));
@@ -124,29 +157,91 @@ public class Chunks<K> implements Iterable<Chunk> {
       return (numberOfNodeInCluster * maxChunkSizeInBytes) / replicationFactor;
    }
 
-   private ChunkKeyNodeAddressTuple nextChunkKeyAndNodeAddress() {
-      // FIXME: We need both a proper chunk key and node address
-      String chunkKey = UUID.randomUUID().toString();
-      Address nodeAddress = new Address() {
-      };
-      return new ChunkKeyNodeAddressTuple(chunkKey, nodeAddress);
+   private class ChunkKeyProducer {
+
+      private final List<ChunkKeyNodeAddressesTuple> alreadyUsedUpChunkKeysAndNodeAddresses = new ArrayList<ChunkKeyNodeAddressesTuple>();
+
+      private final Random randomGenerator = new Random();
+
+      List<String> chunkKeys() {
+         final List<String> allChunkKeys = new ArrayList<String>(
+                  alreadyUsedUpChunkKeysAndNodeAddresses.size());
+         for (ChunkKeyNodeAddressesTuple chunkKeyAndNodeAddresses : alreadyUsedUpChunkKeysAndNodeAddresses)
+            allChunkKeys.add(chunkKeyAndNodeAddresses.chunkKey);
+         return allChunkKeys;
+      }
+
+      ChunkKeyNodeAddressesTuple nextChunkKeyAndNodeAddresses() {
+         // TODO: Shouldn't we impose a (configurable) upper limit to the number of attempts at
+         // producing a valid new chunk key?
+         while (true) {
+            /*
+             * TODO: Find a better algorithm for producing random chunk keys.
+             * 
+             * Requirements:
+             * 
+             * 1. Should distribute evenly across our constant hash ring. 2. Should produce a string
+             * of a predefind length.
+             */
+            byte[] chunkKeyBytes = new byte[20];
+            randomGenerator.nextBytes(chunkKeyBytes);
+            String chunkKeyCandidate = new String(chunkKeyBytes);
+            List<Address> correspondingNodeAddresses = distributionManager
+                     .locate(chunkKeyCandidate);
+            if (isAllowed(chunkKeyCandidate, correspondingNodeAddresses)) {
+               ChunkKeyNodeAddressesTuple allowedChunkKeyAndNodeAddresses = new ChunkKeyNodeAddressesTuple(
+                        chunkKeyCandidate, correspondingNodeAddresses);
+               alreadyUsedUpChunkKeysAndNodeAddresses.add(allowedChunkKeyAndNodeAddresses);
+               return allowedChunkKeyAndNodeAddresses;
+            }
+         }
+      }
+
+      private boolean isAllowed(String chunkKey, List<Address> correspondingNodeAddresses) {
+         return !hasAlreadyBeenProduced(chunkKey) && !isAlreadyUsedByDifferentLargeObject(chunkKey)
+                  && !isStoredInAnAlreadyUsedNode(chunkKey, correspondingNodeAddresses);
+      }
+
+      private boolean hasAlreadyBeenProduced(String chunkKey) {
+         for (ChunkKeyNodeAddressesTuple chunkKeyAndNodeAddress : alreadyUsedUpChunkKeysAndNodeAddresses) {
+            if (chunkKeyAndNodeAddress.chunkKey.equals(chunkKey))
+               return true;
+         }
+
+         return false;
+      }
+
+      private boolean isAlreadyUsedByDifferentLargeObject(String chunkKey) {
+         for (String cacheName : embeddedCacheManager.getCacheNames()) {
+            Cache<?, ?> cache = embeddedCacheManager.getCache(cacheName, false);
+            if (cache != null && cache.containsKey(chunkKey))
+               return true;
+         }
+
+         return false;
+      }
+
+      private boolean isStoredInAnAlreadyUsedNode(String chunkKey,
+               List<Address> correspondingNodeAddresses) {
+         // FIXME: Is this really safe during a rehash?
+         for (ChunkKeyNodeAddressesTuple chunkKeyAndNodeAddresses : alreadyUsedUpChunkKeysAndNodeAddresses) {
+            if (!Collections.disjoint(correspondingNodeAddresses,
+                     chunkKeyAndNodeAddresses.nodeAddresses))
+               return true;
+         }
+         return false;
+      }
    }
 
-   private static class ChunkKeyNodeAddressTuple {
+   private static class ChunkKeyNodeAddressesTuple {
 
       private final String chunkKey;
 
-      private final Address nodeAddress;
+      private final List<Address> nodeAddresses;
 
-      /**
-       * Create a new ChunkKeyAddressTuple.
-       * 
-       * @param chunkKey
-       * @param nodeAddress
-       */
-      ChunkKeyNodeAddressTuple(String chunkKey, Address nodeAddress) {
+      ChunkKeyNodeAddressesTuple(String chunkKey, List<Address> nodeAddresses) {
          this.chunkKey = chunkKey;
-         this.nodeAddress = nodeAddress;
+         this.nodeAddresses = nodeAddresses;
       }
    }
 
@@ -185,10 +280,10 @@ public class Chunks<K> implements Iterable<Chunk> {
                                     .getAllTopologyInfo().size(), configuration.getNumOwners());
             }
 
-            ChunkKeyNodeAddressTuple chunkKeyAndNodeAddress = nextChunkKeyAndNodeAddress();
-            alreadyUsedChunkKeysAndNodeAddresses.add(chunkKeyAndNodeAddress);
+            ChunkKeyNodeAddressesTuple chunkKeyAndNodeAddress = chunkKeyProducer
+                     .nextChunkKeyAndNodeAddresses();
 
-            return new Chunk(chunkKeyAndNodeAddress.chunkKey, chunkKeyAndNodeAddress.nodeAddress,
+            return new Chunk(chunkKeyAndNodeAddress.chunkKey, chunkKeyAndNodeAddress.nodeAddresses,
                      chunkData.toByteArray());
          } catch (IOException e) {
             throw new RuntimeException("Failed to read Chunk from LargeObject InputStream: "
