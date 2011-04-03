@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
-import org.infinispan.commands.write.WriteLargeObjectToKeyCommand;
+import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.config.Configuration;
 import org.infinispan.container.EntryFactory;
 import org.infinispan.container.entries.CacheEntry;
@@ -80,10 +80,35 @@ public class LargeObjectChunkingInterceptorTest {
       CacheEntry cacheEntry = new ReadCommittedEntry(largeObjectKey, largeObject, 0L);
       txCtx.putLookedUpEntry(largeObjectKey, cacheEntry);
 
-      WriteLargeObjectToKeyCommand writeLargeObjectCommand = new WriteLargeObjectToKeyCommand(
-               largeObjectKey, largeObject, null, Collections.<Flag> emptySet());
+      PutKeyValueCommand writeLargeObjectCommand = new PutKeyValueCommand(largeObjectKey,
+               largeObject, false, true, null, 0, 0, Collections.<Flag> emptySet());
 
-      objectUnderTest.visitWriteLargeObjectToKeyCommand(txCtx, writeLargeObjectCommand);
+      objectUnderTest.visitPutKeyValueCommand(txCtx, writeLargeObjectCommand);
+   }
+
+   @Test(expectedExceptions = IllegalStateException.class)
+   public void testThatLargeObjectChunkingInterceptorRejectsNonInputStreamValue() throws Throwable {
+      LargeObjectChunkingInterceptor<Object> objectUnderTest = new LargeObjectChunkingInterceptor<Object>();
+      objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
+               newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
+               newEntryFactory());
+
+      LocalTxInvocationContext txCtx = new LocalTxInvocationContext() {
+         @Override
+         public void putLookedUpEntry(Object key, CacheEntry e) {
+            // Ignore
+         }
+      };
+
+      Object largeObjectKey = new Object();
+      Object nonInputStreamLargeObject = new Object();
+      CacheEntry cacheEntry = new ReadCommittedEntry(largeObjectKey, nonInputStreamLargeObject, 0L);
+      txCtx.putLookedUpEntry(largeObjectKey, cacheEntry);
+
+      PutKeyValueCommand writeLargeObjectCommand = new PutKeyValueCommand(largeObjectKey,
+               nonInputStreamLargeObject, false, true, null, 0, 0, Collections.<Flag> emptySet());
+
+      objectUnderTest.visitPutKeyValueCommand(txCtx, writeLargeObjectCommand);
    }
 
    @Test
@@ -97,8 +122,8 @@ public class LargeObjectChunkingInterceptorTest {
       final List<byte[]> receivedChunkData = new ArrayList<byte[]>();
       CommandInterceptor recordingCommandInterceptor = new CommandInterceptor() {
          @Override
-         public Object visitWriteLargeObjectToKeyCommand(InvocationContext ctx,
-                  WriteLargeObjectToKeyCommand command) throws Throwable {
+         public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command)
+                  throws Throwable {
             BidirectionalMap<Object, CacheEntry> entriesStoredInCtx = ctx.getLookedUpEntries();
             assert entriesStoredInCtx.size() > 0 : "LargeObjectChunkingInterceptor did not store "
                      + "any entries in InvocationContext";
@@ -119,14 +144,56 @@ public class LargeObjectChunkingInterceptorTest {
       InvocationContext ctx = new NonTxInvocationContext();
       ctx.putLookedUpEntry(largeObjectKey, cacheEntry);
 
-      WriteLargeObjectToKeyCommand writeLargeObjectCommand = new WriteLargeObjectToKeyCommand(
-               largeObjectKey, largeObject, null, Collections.<Flag> emptySet());
+      PutKeyValueCommand writeLargeObjectCommand = new PutKeyValueCommand(largeObjectKey,
+               largeObject, false, true, null, 0, 0, Collections.<Flag> emptySet());
 
-      objectUnderTest.visitWriteLargeObjectToKeyCommand(ctx, writeLargeObjectCommand);
+      objectUnderTest.visitPutKeyValueCommand(ctx, writeLargeObjectCommand);
 
       assert Arrays.equals(receivedChunkData.get(0), new byte[] { 1, 2, 3 });
       assert Arrays.equals(receivedChunkData.get(1), new byte[] { 4, 5, 6 });
       assert Arrays.equals(receivedChunkData.get(2), new byte[] { 7 });
+   }
+
+   @Test
+   public void testThatLargeObjectChunkingInterceptorSkipsChunkingIfPutLargeObjectIsFalse()
+            throws Throwable {
+      LargeObjectChunkingInterceptor<Object> objectUnderTest = new LargeObjectChunkingInterceptor<Object>();
+      objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
+               newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
+               newEntryFactory());
+
+      final List<Object> receivedValues = new ArrayList<Object>();
+      CommandInterceptor recordingCommandInterceptor = new CommandInterceptor() {
+         @Override
+         public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command)
+                  throws Throwable {
+            BidirectionalMap<Object, CacheEntry> entriesStoredInCtx = ctx.getLookedUpEntries();
+            assert entriesStoredInCtx.size() > 0 : "LargeObjectChunkingInterceptor did not store "
+                     + "any entries in InvocationContext";
+            assert entriesStoredInCtx.size() == 1 : "LargeObjectChunkingInterceptor did stored more "
+                     + "than one entry in InvocationContext";
+            CacheEntry cacheEntry = entriesStoredInCtx.values().iterator().next();
+            receivedValues.add(cacheEntry.getValue());
+
+            return null;
+         }
+      };
+      objectUnderTest.setNext(recordingCommandInterceptor);
+
+      Object largeObjectKey = new Object();
+      Object largeObject = new Object();
+      CacheEntry cacheEntry = new ReadCommittedEntry(largeObjectKey, largeObject, 0L);
+      InvocationContext ctx = new NonTxInvocationContext();
+      ctx.putLookedUpEntry(largeObjectKey, cacheEntry);
+
+      PutKeyValueCommand writeLargeObjectCommand = new PutKeyValueCommand(largeObjectKey,
+               largeObject, false, false, null, 0, 0, Collections.<Flag> emptySet());
+
+      objectUnderTest.visitPutKeyValueCommand(ctx, writeLargeObjectCommand);
+
+      assert receivedValues.get(0) == largeObject : "LargeObjectChunkingInterceptor did NOT leave "
+               + "the value to be stored unaltered although the putLargeObject flag "
+               + "on the PutKeyValueCommand was set to false";
    }
 
    private DistributionManager newDistributionManagerWithNumNodesInCluster(int numNodesInCluster) {
