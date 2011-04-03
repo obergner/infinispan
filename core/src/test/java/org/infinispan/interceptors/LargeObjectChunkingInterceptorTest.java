@@ -65,9 +65,9 @@ public class LargeObjectChunkingInterceptorTest {
    public void testThatLargeObjectChunkingInterceptorRejectsTransactionalInvocationContext()
             throws Throwable {
       LargeObjectChunkingInterceptor<Object> objectUnderTest = new LargeObjectChunkingInterceptor<Object>();
-      objectUnderTest.init(newConfigurationWithNumOwners(1),
+      objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
                newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
-               newEntryFactory(), 3L);
+               newEntryFactory());
 
       LocalTxInvocationContext txCtx = new LocalTxInvocationContext() {
          @Override
@@ -92,9 +92,9 @@ public class LargeObjectChunkingInterceptorTest {
    public void testThatLargeObjectChunkingInterceptorCorrectlyCallsInterceptorPipelineForEachChunk()
             throws Throwable {
       LargeObjectChunkingInterceptor<Object> objectUnderTest = new LargeObjectChunkingInterceptor<Object>();
-      objectUnderTest.init(newConfigurationWithNumOwners(1),
+      objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
                newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
-               newEntryFactory(), 3L);
+               newEntryFactory());
 
       final List<byte[]> receivedChunkData = new ArrayList<byte[]>();
       CommandInterceptor recordingCommandInterceptor = new CommandInterceptor() {
@@ -158,11 +158,17 @@ public class LargeObjectChunkingInterceptorTest {
       return distributionManager;
    }
 
-   private Configuration newConfigurationWithNumOwners(final int numOwners) {
+   private Configuration newConfigurationWithNumOwnersAndMaxChunkSize(final int numOwners,
+            final long maxChunkSize) {
       return new Configuration() {
          @Override
          public int getNumOwners() {
             return numOwners;
+         }
+
+         @Override
+         public long getMaximumChunkSizeInBytes() {
+            return maxChunkSize;
          }
       };
    }

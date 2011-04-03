@@ -128,4 +128,5 @@ public interface ConfigurationBeanVisitor {
 
    void visitRecoveryType(Configuration.RecoveryType config);
 
+   void visitLargeObjectSupportType(Configuration.LargeObjectSupportType config);
 }

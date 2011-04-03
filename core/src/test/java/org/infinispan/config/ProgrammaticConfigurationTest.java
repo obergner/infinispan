@@ -116,6 +116,13 @@ public class ProgrammaticConfigurationTest extends AbstractInfinispanTest {
       SingletonStoreConfig singletonStoreConfig = cacheLoaderConfig.getSingletonStoreConfig();
       assert singletonStoreConfig.getPushStateTimeout() == 1000 && singletonStoreConfig.isSingletonStoreEnabled();
             
-      assert c.getCacheStopTimeout() == 1000 && c.isSyncCommitPhase();       
+      assert c.getCacheStopTimeout() == 1000 && c.isSyncCommitPhase();
+      
+      // Test LargeObjectSupport configuration
+      assert c.getLargeObjectSupportConfig().getMaximumChunkSizeInBytes()
+               .equals(Long.valueOf(100 * 1024L * 1024L));
+      c.configureLargeObjectSupport().maximumChunkSizeInBytes(23456789L);
+      assert c.getLargeObjectSupportConfig().getMaximumChunkSizeInBytes()
+               .equals(Long.valueOf(23456789L));
    }
 }

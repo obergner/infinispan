@@ -62,15 +62,15 @@ public class ChunksTest {
             return false;
          }
       };
-      new Chunks<Object>(new Object(), inputStreamNotSupportingMark, 1000L, null, null, null);
+      new Chunks<Object>(new Object(), inputStreamNotSupportingMark, null, null, null);
    }
 
    @Test(expectedExceptions = IllegalStateException.class)
    public void testThatChunksInstanceCannotBeIteratedOverMoreThanOnce() {
       InputStream largeObject = new ByteArrayInputStream("This is a large object".getBytes());
-      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject, 2L,
+      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
                newDistributionManagerWithNumNodesInCluster(NUM_NODES_IN_CLUSTER),
-               newConfigurationWithNumOwners(1), newEmbeddedCacheManager());
+               newConfigurationWithNumOwnersAndMaxChunkSize(1, 2L), newEmbeddedCacheManager());
 
       for (Chunk chunk : objectUnderTest) {
          chunk.getChunkKey(); // Whatever
@@ -86,8 +86,9 @@ public class ChunksTest {
       long maxChunkSizeInBytes = 3L;
       InputStream largeObject = new ByteArrayInputStream(bytes);
       Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
-               maxChunkSizeInBytes, newDistributionManagerWithNumNodesInCluster(1000),
-               newConfigurationWithNumOwners(1), newEmbeddedCacheManager());
+               newDistributionManagerWithNumNodesInCluster(1000),
+               newConfigurationWithNumOwnersAndMaxChunkSize(1, maxChunkSizeInBytes),
+               newEmbeddedCacheManager());
       List<Chunk> allChunks = new ArrayList<Chunk>();
 
       for (Chunk chunk : objectUnderTest) {
@@ -102,9 +103,9 @@ public class ChunksTest {
    @Test(expectedExceptions = IllegalStateException.class)
    public void testThatLargeObjectMetadataCannotBeCalledIfIterationNotYetFinished() {
       InputStream largeObject = new ByteArrayInputStream("This is a large object".getBytes());
-      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject, 2L,
+      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
                newDistributionManagerWithNumNodesInCluster(NUM_NODES_IN_CLUSTER),
-               newConfigurationWithNumOwners(1), newEmbeddedCacheManager());
+               newConfigurationWithNumOwnersAndMaxChunkSize(1, 2L), newEmbeddedCacheManager());
       objectUnderTest.iterator().next(); // Should hold more than one chunk
 
       objectUnderTest.largeObjectMetadata();
@@ -117,9 +118,9 @@ public class ChunksTest {
       InputStream largeObject = new ByteArrayInputStream(bytes);
       Object largeObjectKey = new Object();
       Chunks<Object> objectUnderTest = new Chunks<Object>(largeObjectKey, largeObject,
-               maxChunkSizeInBytes,
                newDistributionManagerWithNumNodesInCluster(NUM_NODES_IN_CLUSTER),
-               newConfigurationWithNumOwners(1), newEmbeddedCacheManager());
+               newConfigurationWithNumOwnersAndMaxChunkSize(1, maxChunkSizeInBytes),
+               newEmbeddedCacheManager());
       for (Chunk chunk : objectUnderTest) {
          chunk.getChunkKey(); // Whatever
       }
@@ -135,9 +136,9 @@ public class ChunksTest {
    @Test(expectedExceptions = UnsupportedOperationException.class)
    public void testThatChunkIteratorDoesNotSupportRemove() {
       InputStream largeObject = new ByteArrayInputStream("This is a large object".getBytes());
-      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject, 2L,
+      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
                newDistributionManagerWithNumNodesInCluster(NUM_NODES_IN_CLUSTER),
-               newConfigurationWithNumOwners(1), newEmbeddedCacheManager());
+               newConfigurationWithNumOwnersAndMaxChunkSize(1, 2L), newEmbeddedCacheManager());
 
       objectUnderTest.iterator().remove();
    }
@@ -145,9 +146,9 @@ public class ChunksTest {
    @Test(expectedExceptions = IllegalStateException.class)
    public void testThatChunksInstanceRejectsNumberOfClusterNodesZero() {
       InputStream largeObject = new ByteArrayInputStream("This is a large object".getBytes());
-      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject, 2L,
-               newDistributionManagerWithNumNodesInCluster(0), newConfigurationWithNumOwners(1),
-               newEmbeddedCacheManager());
+      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
+               newDistributionManagerWithNumNodesInCluster(0),
+               newConfigurationWithNumOwnersAndMaxChunkSize(1, 2L), newEmbeddedCacheManager());
 
       objectUnderTest.iterator().next();
    }
@@ -155,9 +156,9 @@ public class ChunksTest {
    @Test(expectedExceptions = IllegalStateException.class)
    public void testThatChunksInstanceRejectsNumOwnersZero() {
       InputStream largeObject = new ByteArrayInputStream("This is a large object".getBytes());
-      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject, 2L,
+      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
                newDistributionManagerWithNumNodesInCluster(NUM_NODES_IN_CLUSTER),
-               newConfigurationWithNumOwners(0), newEmbeddedCacheManager());
+               newConfigurationWithNumOwnersAndMaxChunkSize(0, 2L), newEmbeddedCacheManager());
 
       objectUnderTest.iterator().next();
    }
@@ -172,9 +173,10 @@ public class ChunksTest {
       byte[] largeObjectData = new byte[(int) largeObjectSizeLimitInBytes + 1];
       Arrays.fill(largeObjectData, (byte) 16);
       InputStream largeObject = new ByteArrayInputStream(largeObjectData);
-      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject, 2L,
+      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
                newDistributionManagerWithNumNodesInCluster(numberOfClusterNodes),
-               newConfigurationWithNumOwners(numOwners), newEmbeddedCacheManager());
+               newConfigurationWithNumOwnersAndMaxChunkSize(numOwners, 2L),
+               newEmbeddedCacheManager());
 
       for (Chunk chunk : objectUnderTest)
          chunk.getChunkKey(); // Whatever
@@ -207,11 +209,17 @@ public class ChunksTest {
       return distributionManager;
    }
 
-   private Configuration newConfigurationWithNumOwners(final int numOwners) {
+   private Configuration newConfigurationWithNumOwnersAndMaxChunkSize(final int numOwners,
+            final long maxChunkSize) {
       return new Configuration() {
          @Override
          public int getNumOwners() {
             return numOwners;
+         }
+
+         @Override
+         public long getMaximumChunkSizeInBytes() {
+            return maxChunkSize;
          }
       };
    }
