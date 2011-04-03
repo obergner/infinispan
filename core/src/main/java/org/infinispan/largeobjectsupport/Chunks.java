@@ -30,6 +30,14 @@ import net.jcip.annotations.NotThreadSafe;
 
 import org.infinispan.affinity.KeyGenerator;
 
+import net.jcip.annotations.NotThreadSafe;
+
+import org.infinispan.Cache;
+import org.infinispan.config.Configuration;
+import org.infinispan.distribution.DistributionManager;
+import org.infinispan.manager.EmbeddedCacheManager;
+import org.infinispan.remoting.transport.Address;
+
 /**
  * <p>
  * Represents a given <em>Large Object</em>'s collection of {@link Chunk <code>Chunk</code>}s.

@@ -67,7 +67,7 @@ public class PutKeyLargeObjectCommand extends PutKeyValueCommand {
    public PutKeyLargeObjectCommand(Object key, InputStream largeObject, boolean putIfAbsent,
             CacheNotifier notifier, long lifespanMillis, long maxIdleTimeMillis, Set<Flag> flags) {
       // FIXME PutKeyLargeObjectCommand constructor
-      super(key, largeObject, putIfAbsent, notifier, lifespanMillis, maxIdleTimeMillis, flags);
+      super(key, largeObject, putIfAbsent, true, notifier, lifespanMillis, maxIdleTimeMillis, flags);
    }
 
    @Override
