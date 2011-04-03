@@ -73,6 +73,9 @@ public class InterceptorChainFactory extends AbstractNamedCacheComponentFactory 
 
       // add the interceptor chain to the registry first, since some interceptors may ask for it.
       componentRegistry.registerComponent(interceptorChain, InterceptorChain.class);
+      
+      // Add large object chunking interceptor in case we are dealing with a large object
+      interceptorChain.appendInterceptor(createInterceptor(LargeObjectChunkingInterceptor.class));
 
       // add marshallable check interceptor for situations where we want to figure out before marshalling
       if (configuration.isStoreAsBinary() || configuration.isUseAsyncMarshalling()

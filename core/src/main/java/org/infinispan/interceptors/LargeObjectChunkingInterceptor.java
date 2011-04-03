@@ -21,7 +21,9 @@
  */
 package org.infinispan.interceptors;
 
-import org.infinispan.commands.write.WriteLargeObjectToKeyCommand;
+import java.io.InputStream;
+
+import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.config.Configuration;
 import org.infinispan.container.EntryFactory;
 import org.infinispan.container.entries.CacheEntry;
@@ -32,8 +34,6 @@ import org.infinispan.interceptors.base.CommandInterceptor;
 import org.infinispan.largeobjectsupport.Chunk;
 import org.infinispan.largeobjectsupport.Chunks;
 import org.infinispan.manager.EmbeddedCacheManager;
-
-import java.io.InputStream;
 
 /**
  * <p>
@@ -73,16 +73,22 @@ public class LargeObjectChunkingInterceptor<K> extends CommandInterceptor {
    }
 
    @Override
-   public Object visitWriteLargeObjectToKeyCommand(InvocationContext ctx,
-            WriteLargeObjectToKeyCommand command) throws Throwable {
+   public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command)
+            throws Throwable {
+      if (!command.isPutLargeObject())
+         return invokeNextInterceptor(ctx, command);
+
       if (ctx.isInTxScope())
          throw new IllegalStateException(
                   "Storing Large Objects in a transactional context is not (yet) supported.");
+      if (!(command.getValue() instanceof InputStream))
+         throw new IllegalStateException("Value [" + command.getValue()
+                  + "] to be stored is not an InputStream");
 
       CacheEntry rememberedEntry = ctx.lookupEntry(command.getKey());
       ctx.clearLookedUpEntries();
 
-      InputStream largeObject = command.getLargeObject();
+      InputStream largeObject = InputStream.class.cast(command.getValue());
       Chunks<K> chunks = new Chunks<K>((K) command.getKey(), largeObject, distributionManager,
                configuration, embeddedCacheManager);
       for (Chunk chunk : chunks) {
