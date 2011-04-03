@@ -21,14 +21,6 @@
  */
 package org.infinispan.largeobjectsupport;
 
-import net.jcip.annotations.NotThreadSafe;
-
-import org.infinispan.Cache;
-import org.infinispan.config.Configuration;
-import org.infinispan.distribution.DistributionManager;
-import org.infinispan.manager.EmbeddedCacheManager;
-import org.infinispan.remoting.transport.Address;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -37,6 +29,14 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Random;
+
+import net.jcip.annotations.NotThreadSafe;
+
+import org.infinispan.Cache;
+import org.infinispan.config.Configuration;
+import org.infinispan.distribution.DistributionManager;
+import org.infinispan.manager.EmbeddedCacheManager;
+import org.infinispan.remoting.transport.Address;
 
 /**
  * <p>
@@ -69,6 +69,8 @@ import java.util.Random;
  * 
  * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
  * @since 5.1
+ * 
+ * @see <a href="http://community.jboss.org/wiki/LargeObjectSupport">Large Object Support</a>
  */
 @NotThreadSafe
 public class Chunks<K> implements Iterable<Chunk> {
