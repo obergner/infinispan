@@ -11,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
 
 import org.infinispan.AdvancedCache;
@@ -32,6 +34,9 @@ import org.infinispan.distribution.TestAddress;
 import org.infinispan.distribution.ch.NodeTopologyInfo;
 import org.infinispan.distribution.ch.TopologyInfo;
 import org.infinispan.interceptors.base.CommandInterceptor;
+import org.infinispan.largeobjectsupport.LargeObjectMetadata;
+import org.infinispan.largeobjectsupport.LargeObjectMetadataManager;
+import org.infinispan.largeobjectsupport.LargeObjectMetadataManagerImpl;
 import org.infinispan.lifecycle.ComponentStatus;
 import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
@@ -42,13 +47,13 @@ import org.infinispan.util.concurrent.TimeoutException;
 import org.testng.annotations.Test;
 
 /**
- * Test {@link LargeObjectChunkingInterceptor}.
+ * Test {@link LargeObjectSupportInterceptor}.
  * 
  * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
  * @since 5.1
  */
-@Test(groups = "unit", testName = "interceptors.LargeObjectChunkingInterceptorTest")
-public class LargeObjectChunkingInterceptorTest {
+@Test(groups = "unit", testName = "interceptors.LargeObjectSupportInterceptorTest")
+public class LargeObjectSupportInterceptorTest {
 
    private static final int NUM_NODES_IN_CLUSTER = 20;
 
@@ -64,10 +69,11 @@ public class LargeObjectChunkingInterceptorTest {
    @Test(expectedExceptions = IllegalStateException.class)
    public void testThatLargeObjectChunkingInterceptorRejectsTransactionalInvocationContext()
             throws Throwable {
-      LargeObjectChunkingInterceptor<Object> objectUnderTest = new LargeObjectChunkingInterceptor<Object>();
+      LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
       objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
                newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
-               newEntryFactory());
+               newEntryFactory(),
+               newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
 
       LocalTxInvocationContext txCtx = new LocalTxInvocationContext() {
          @Override
@@ -90,10 +96,11 @@ public class LargeObjectChunkingInterceptorTest {
 
    @Test(expectedExceptions = IllegalStateException.class)
    public void testThatLargeObjectChunkingInterceptorRejectsNonInputStreamValue() throws Throwable {
-      LargeObjectChunkingInterceptor<Object> objectUnderTest = new LargeObjectChunkingInterceptor<Object>();
+      LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
       objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
                newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
-               newEntryFactory());
+               newEntryFactory(),
+               newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
 
       LocalTxInvocationContext txCtx = new LocalTxInvocationContext() {
          @Override
@@ -116,10 +123,11 @@ public class LargeObjectChunkingInterceptorTest {
    @Test
    public void testThatLargeObjectChunkingInterceptorCorrectlyCallsInterceptorPipelineForEachChunk()
             throws Throwable {
-      LargeObjectChunkingInterceptor<Object> objectUnderTest = new LargeObjectChunkingInterceptor<Object>();
+      LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
       objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
                newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
-               newEntryFactory());
+               newEntryFactory(),
+               newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
 
       final List<byte[]> receivedChunkData = new ArrayList<byte[]>();
       CommandInterceptor recordingCommandInterceptor = new CommandInterceptor() {
@@ -127,9 +135,9 @@ public class LargeObjectChunkingInterceptorTest {
          public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command)
                   throws Throwable {
             BidirectionalMap<Object, CacheEntry> entriesStoredInCtx = ctx.getLookedUpEntries();
-            assert entriesStoredInCtx.size() > 0 : "LargeObjectChunkingInterceptor did not store "
+            assert entriesStoredInCtx.size() > 0 : "LargeObjectSupportInterceptor did not store "
                      + "any entries in InvocationContext";
-            assert entriesStoredInCtx.size() == 1 : "LargeObjectChunkingInterceptor did stored more "
+            assert entriesStoredInCtx.size() == 1 : "LargeObjectSupportInterceptor did stored more "
                      + "than one entry in InvocationContext";
             CacheEntry cacheEntry = entriesStoredInCtx.values().iterator().next();
             receivedChunkData.add((byte[]) cacheEntry.getValue());
@@ -159,10 +167,11 @@ public class LargeObjectChunkingInterceptorTest {
    @Test
    public void testThatLargeObjectChunkingInterceptorSkipsChunkingIfPutLargeObjectIsFalse()
             throws Throwable {
-      LargeObjectChunkingInterceptor<Object> objectUnderTest = new LargeObjectChunkingInterceptor<Object>();
+      LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
       objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
                newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
-               newEntryFactory());
+               newEntryFactory(),
+               newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
 
       final List<Object> receivedValues = new ArrayList<Object>();
       CommandInterceptor recordingCommandInterceptor = new CommandInterceptor() {
@@ -170,9 +179,9 @@ public class LargeObjectChunkingInterceptorTest {
          public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command)
                   throws Throwable {
             BidirectionalMap<Object, CacheEntry> entriesStoredInCtx = ctx.getLookedUpEntries();
-            assert entriesStoredInCtx.size() > 0 : "LargeObjectChunkingInterceptor did not store "
+            assert entriesStoredInCtx.size() > 0 : "LargeObjectSupportInterceptor did not store "
                      + "any entries in InvocationContext";
-            assert entriesStoredInCtx.size() == 1 : "LargeObjectChunkingInterceptor did stored more "
+            assert entriesStoredInCtx.size() == 1 : "LargeObjectSupportInterceptor did stored more "
                      + "than one entry in InvocationContext";
             CacheEntry cacheEntry = entriesStoredInCtx.values().iterator().next();
             receivedValues.add(cacheEntry.getValue());
@@ -193,9 +202,42 @@ public class LargeObjectChunkingInterceptorTest {
 
       objectUnderTest.visitPutKeyValueCommand(ctx, writeLargeObjectCommand);
 
-      assert receivedValues.get(0) == largeObject : "LargeObjectChunkingInterceptor did NOT leave "
+      assert receivedValues.get(0) == largeObject : "LargeObjectSupportInterceptor did NOT leave "
                + "the value to be stored unaltered although the putLargeObject flag "
                + "on the PutKeyValueCommand was set to false";
+   }
+
+   @Test
+   public void testThatLargeObjectSupportInterceptorSkipsCorrectlyStoresLargeObjectMetadata()
+            throws Throwable {
+      LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
+      LargeObjectMetadataManager largeObjectMetadataManager = newLargeObjectMetadataManagerWithLargeObjectMetadataStored(null);
+      objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
+               newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
+               newEntryFactory(), largeObjectMetadataManager);
+
+      CommandInterceptor noopCommandInterceptor = new CommandInterceptor() {
+         @Override
+         public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command)
+                  throws Throwable {
+            return null;
+         }
+      };
+      objectUnderTest.setNext(noopCommandInterceptor);
+
+      Object largeObjectKey = new Object();
+      byte[] bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7 };
+      InputStream largeObject = new ByteArrayInputStream(bytes);
+      CacheEntry cacheEntry = new ReadCommittedEntry(largeObjectKey, largeObject, 0L);
+      InvocationContext ctx = new NonTxInvocationContext();
+      ctx.putLookedUpEntry(largeObjectKey, cacheEntry);
+
+      PutKeyValueCommand writeLargeObjectCommand = new PutKeyValueCommand(largeObjectKey,
+               largeObject, false, true, null, 0, 0, Collections.<Flag> emptySet());
+
+      objectUnderTest.visitPutKeyValueCommand(ctx, writeLargeObjectCommand);
+
+      assert largeObjectMetadataManager.alreadyUsedByLargeObject(largeObjectKey) : "LargeObjectSupportInterceptor did NOT store Large Object's metadata";
    }
 
    private DistributionManager newDistributionManagerWithNumNodesInCluster(int numNodesInCluster) {
@@ -262,6 +304,18 @@ public class LargeObjectChunkingInterceptorTest {
          }
 
       };
+   }
+
+   private LargeObjectMetadataManager newLargeObjectMetadataManagerWithLargeObjectMetadataStored(
+            Object largeObjectKey) {
+      LargeObjectMetadata<Object> largeObjectMetadata = new LargeObjectMetadata<Object>(
+               largeObjectKey, 3L, new String[0]);
+      ConcurrentMap<Object, LargeObjectMetadata<Object>> keyToLargeObjectMetadata = new ConcurrentHashMap<Object, LargeObjectMetadata<Object>>(
+               1);
+      if (largeObjectKey != null)
+         keyToLargeObjectMetadata.put(largeObjectMetadata.getLargeObjectKey(), largeObjectMetadata);
+
+      return new LargeObjectMetadataManagerImpl(keyToLargeObjectMetadata);
    }
 
    private <K, V> Cache<K, V> newCacheMaybeContainingKey(boolean containsKey) {

@@ -21,46 +21,44 @@
  */
 package org.infinispan.largeobjectsupport;
 
+import java.util.concurrent.ConcurrentMap;
+
+import net.jcip.annotations.ThreadSafe;
+
 /**
- * A user attempted to store a <em>Large Object</em> under a key that is currently used to store a
- * different object that is <strong>not</strong> a <em>Large Object</em>.
+ * LargeObjectMetadataImpl.
  * 
  * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
  * @since 5.1
  */
-public class KeyAlreadyUsedAsNonLargeObjectKeyException extends LargeObjectSupportException {
+@ThreadSafe
+public class LargeObjectMetadataManagerImpl implements LargeObjectMetadataManager {
 
-   /** The serialVersionUID */
-   private static final long serialVersionUID = -4393900538601965496L;
-
-   private final Object key;
+   private ConcurrentMap<Object, LargeObjectMetadata<Object>> largeObjectKeyToMetadata;
 
    /**
-    * Create a new KeyAlreadyUsedAsNonLargeObjectKeyException.
+    * Create a new LargeObjectMetadataManagerImpl.
     * 
-    * @param key
+    * @param largeObjectKeyToMetadata
     */
-   public KeyAlreadyUsedAsNonLargeObjectKeyException(Object key) {
-      this(null, key);
+   public LargeObjectMetadataManagerImpl(
+            ConcurrentMap<Object, LargeObjectMetadata<Object>> largeObjectKeyToMetadata) {
+      this.largeObjectKeyToMetadata = largeObjectKeyToMetadata;
    }
 
-   /**
-    * Create a new KeyAlreadyUsedAsNonLargeObjectKeyException.
-    * 
-    * @param msg
-    * @param key
-    */
-   public KeyAlreadyUsedAsNonLargeObjectKeyException(String msg, Object key) {
-      super(msg);
-      this.key = key;
+   @Override
+   public <K> boolean alreadyUsedByLargeObject(K largeObjectKey) {
+      return largeObjectKeyToMetadata.containsKey(largeObjectKey);
    }
 
-   /**
-    * Get the key.
-    * 
-    * @return the key.
-    */
-   public Object getKey() {
-      return key;
+   @Override
+   public <K> LargeObjectMetadata<K> correspondingLargeObjectMetadata(K largeObjectKey) {
+      return (LargeObjectMetadata<K>) largeObjectKeyToMetadata.get(largeObjectKey);
+   }
+
+   @Override
+   public <K> void storeLargeObjectMetadata(LargeObjectMetadata<K> largeObjectMetadata) {
+      largeObjectKeyToMetadata.putIfAbsent(largeObjectMetadata.getLargeObjectKey(),
+               (LargeObjectMetadata<Object>) largeObjectMetadata);
    }
 }

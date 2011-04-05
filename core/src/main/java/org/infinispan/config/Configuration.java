@@ -699,14 +699,27 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
     */
    public interface LargeObjectSupportConfig {
 
+      public static final String DEFAULT_LARGEOBJECT_METADATA_CACHE = "__largeObjectMetadataCache__";
+
       /**
        * Defines the maximum size in bytes per {@link org.infinispan.largeobjectsupport.Chunk
        * <code>Chunk</code>}. Should be adjusted according to the available heap space.
        * 
        * @param maximumChunkSizeInBytes
-       * @return
+       * @return this
        */
       LargeObjectSupportConfig maximumChunkSizeInBytes(Long maximumChunkSizeInBytes);
+
+      /**
+       * Sets the name of the cache used to store {@link LargeObjectMetadata
+       * <code>LargeObjectMetadata</code>}, i.e. the mapping from a large object's key to the list
+       * of chunk keys. If none is given, this name defaults to
+       * {@link #DEFAULT_LARGEOBJECT_METADATA_CACHE}.
+       * 
+       * @param largeObjectMetadataCacheName
+       * @return this
+       */
+      LargeObjectSupportConfig largeObjecMetadataCacheName(String largeObjectMetadataCacheName);
    }
 
    // reference to a global configuration
@@ -1810,6 +1823,10 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
    
    public long getMaximumChunkSizeInBytes() {
       return largeObjectSupport.maximumChunkSizeInBytes;
+   }
+   
+   public String getLargeObjectMetadataCacheName() {
+      return largeObjectSupport.largeObjectMetadataCacheName;
    }
 
    // ------------------------------------------------------------------------------------------------------------
@@ -4060,6 +4077,9 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
       @ConfigurationDocRef(bean = Configuration.class, targetElement = "setMaximumChunkSizeInBytes")
       protected Long maximumChunkSizeInBytes = 100 * 1024L * 1024L;
 
+      @ConfigurationDocRef(bean = Configuration.class, targetElement = "setLargeObjectMetadataCacheName")
+      protected String largeObjectMetadataCacheName = DEFAULT_LARGEOBJECT_METADATA_CACHE;
+
       public void accept(ConfigurationBeanVisitor v) {
          v.visitLargeObjectSupportType(this);
       }
@@ -4071,7 +4091,7 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
        * @return The maximum size (in bytes) per {@link org.infinispan.largeobjectsupport.Chunk
        *         <code>chunk</code>}.
        */
-      @XmlAttribute
+      @XmlAttribute(required = false)
       public Long getMaximumChunkSizeInBytes() {
          return maximumChunkSizeInBytes;
       }
@@ -4092,7 +4112,35 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
 
       @Override
       public LargeObjectSupportConfig maximumChunkSizeInBytes(Long maximumChunkSizeInBytes) {
-         this.maximumChunkSizeInBytes = maximumChunkSizeInBytes;
+         setMaximumChunkSizeInBytes(maximumChunkSizeInBytes);
+         return this;
+      }
+
+      /**
+       * Get the largeObjectMetadataCacheName.
+       * 
+       * @return the largeObjectMetadataCacheName.
+       */
+      @XmlAttribute(required = false)
+      public String getLargeObjectMetadataCacheName() {
+         return largeObjectMetadataCacheName;
+      }
+
+      /**
+       * Set the largeObjectMetadataCacheName.
+       * 
+       * @param largeObjectMetadataCacheName
+       *           The largeObjectMetadataCacheName to set.
+       */
+      public void setLargeObjectMetadataCacheName(String largeObjectMetadataCacheName) {
+         testImmutability("largeOjectMetadataCacheName");
+         this.largeObjectMetadataCacheName = largeObjectMetadataCacheName;
+      }
+
+      @Override
+      public LargeObjectSupportConfig largeObjecMetadataCacheName(
+               String largeObjectMetadataCacheName) {
+         setLargeObjectMetadataCacheName(largeObjectMetadataCacheName);
          return this;
       }
 
@@ -4100,6 +4148,10 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
       public int hashCode() {
          final int prime = 31;
          int result = 1;
+         result = prime
+                  * result
+                  + ((largeObjectMetadataCacheName == null) ? 0 : largeObjectMetadataCacheName
+                           .hashCode());
          result = prime * result
                   + ((maximumChunkSizeInBytes == null) ? 0 : maximumChunkSizeInBytes.hashCode());
          return result;
@@ -4114,6 +4166,11 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
          if (getClass() != obj.getClass())
             return false;
          LargeObjectSupportType other = (LargeObjectSupportType) obj;
+         if (largeObjectMetadataCacheName == null) {
+            if (other.largeObjectMetadataCacheName != null)
+               return false;
+         } else if (!largeObjectMetadataCacheName.equals(other.largeObjectMetadataCacheName))
+            return false;
          if (maximumChunkSizeInBytes == null) {
             if (other.maximumChunkSizeInBytes != null)
                return false;
