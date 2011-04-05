@@ -6,7 +6,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -38,7 +37,6 @@ import org.infinispan.largeobjectsupport.LargeObjectMetadata;
 import org.infinispan.largeobjectsupport.LargeObjectMetadataManager;
 import org.infinispan.largeobjectsupport.LargeObjectMetadataManagerImpl;
 import org.infinispan.lifecycle.ComponentStatus;
-import org.infinispan.manager.DefaultCacheManager;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.remoting.transport.Address;
 import org.infinispan.util.BidirectionalMap;
@@ -71,8 +69,7 @@ public class LargeObjectSupportInterceptorTest {
             throws Throwable {
       LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
       objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
-               newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
-               newEntryFactory(),
+               newDistributionManagerWithNumNodesInCluster(1000), newEntryFactory(),
                newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
 
       LocalTxInvocationContext txCtx = new LocalTxInvocationContext() {
@@ -98,8 +95,7 @@ public class LargeObjectSupportInterceptorTest {
    public void testThatLargeObjectChunkingInterceptorRejectsNonInputStreamValue() throws Throwable {
       LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
       objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
-               newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
-               newEntryFactory(),
+               newDistributionManagerWithNumNodesInCluster(1000), newEntryFactory(),
                newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
 
       LocalTxInvocationContext txCtx = new LocalTxInvocationContext() {
@@ -125,8 +121,7 @@ public class LargeObjectSupportInterceptorTest {
             throws Throwable {
       LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
       objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
-               newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
-               newEntryFactory(),
+               newDistributionManagerWithNumNodesInCluster(1000), newEntryFactory(),
                newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
 
       final List<byte[]> receivedChunkData = new ArrayList<byte[]>();
@@ -169,8 +164,7 @@ public class LargeObjectSupportInterceptorTest {
             throws Throwable {
       LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
       objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
-               newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
-               newEntryFactory(),
+               newDistributionManagerWithNumNodesInCluster(1000), newEntryFactory(),
                newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
 
       final List<Object> receivedValues = new ArrayList<Object>();
@@ -213,8 +207,8 @@ public class LargeObjectSupportInterceptorTest {
       LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
       LargeObjectMetadataManager largeObjectMetadataManager = newLargeObjectMetadataManagerWithLargeObjectMetadataStored(null);
       objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
-               newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
-               newEntryFactory(), largeObjectMetadataManager);
+               newDistributionManagerWithNumNodesInCluster(1000), newEntryFactory(),
+               largeObjectMetadataManager);
 
       CommandInterceptor noopCommandInterceptor = new CommandInterceptor() {
          @Override
@@ -279,30 +273,6 @@ public class LargeObjectSupportInterceptorTest {
          public long getMaximumChunkSizeInBytes() {
             return maxChunkSize;
          }
-      };
-   }
-
-   private EmbeddedCacheManager newEmbeddedCacheManager() {
-      return new DefaultCacheManager() {
-
-         @Override
-         public <K, V> Cache<K, V> getCache(String cacheName, boolean create) {
-            // It is rather improbable that a given cache already contains
-            // a randomly generated key.
-            boolean containsKey = Math.random() < 1 / 100000;
-            return newCacheMaybeContainingKey(containsKey);
-         }
-
-         @Override
-         public Set<String> getCacheNames() {
-            int numberOfCaches = 100;
-            Set<String> cacheNames = new HashSet<String>(numberOfCaches);
-            for (int i = 0; i < numberOfCaches; i++) {
-               cacheNames.add("test.cache-" + i);
-            }
-            return cacheNames;
-         }
-
       };
    }
 
