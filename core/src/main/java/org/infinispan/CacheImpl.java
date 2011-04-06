@@ -103,6 +103,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.infinispan.context.Flag.*;
 import static org.infinispan.factories.KnownComponentNames.*;
 
@@ -731,7 +732,15 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    
    @Override
    public void writeToKey(K key, InputStream largeObject) {
-      // TODO: Implement;
+      assertKeyNotNull(key);
+      // TODO: Change to false as soon as we support transactions
+      InvocationContext ctx = getInvocationContext(true);
+      PutKeyValueCommand command = commandsFactory.buildPutKeyValueCommand(key, largeObject,
+               MILLISECONDS.toMillis(defaultLifespan), MILLISECONDS.toMillis(defaultMaxIdleTime),
+               ctx.getFlags());
+      // Mark this command as pertaining to a large object
+      command.setPutLargeObject(true);
+      invoker.invoke(ctx, command);
    }
 
    public void compact() {
