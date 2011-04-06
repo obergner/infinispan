@@ -21,10 +21,6 @@
  */
 package org.infinispan.largeobjectsupport;
 
-import org.infinispan.remoting.transport.Address;
-
-import java.util.List;
-
 /**
  * <p>
  * Represents a single chunk/fragment of a <em>Large Object</em> to be stored in INFINISPAN. Since a
@@ -40,20 +36,10 @@ public class Chunk {
 
    private final String chunkKey;
 
-   private final List<Address> chunkNodeAddresses;
-
    private final byte[] data;
 
-   /**
-    * Create a new Chunk.
-    * 
-    * @param chunkKey
-    * @param chunkNodeAddresses
-    * @param data
-    */
-   Chunk(String chunkKey, List<Address> chunkNodeAddresses, byte[] data) {
+   Chunk(String chunkKey, byte[] data) {
       this.chunkKey = chunkKey;
-      this.chunkNodeAddresses = chunkNodeAddresses;
       this.data = data;
    }
 
@@ -64,26 +50,6 @@ public class Chunk {
     */
    public final String getChunkKey() {
       return chunkKey;
-   }
-
-   /**
-    * Get the chunkNodeAddress.
-    * 
-    * @return the chunkNodeAddress.
-    */
-   public final List<Address> getChunkNodeAddresses() {
-      return chunkNodeAddresses;
-   }
-
-   /**
-    * Tests whether this <code>Chunk</code> is stored - or is to be stored - in the INFINISPAN node
-    * having the supplied <code>nodeAddress</code>.
-    * 
-    * @param nodeAddress
-    * @return
-    */
-   public final boolean isStoredInNode(Address nodeAddress) {
-      return chunkNodeAddresses.equals(nodeAddress);
    }
 
    /**
@@ -100,7 +66,6 @@ public class Chunk {
       final int prime = 31;
       int result = 1;
       result = prime * result + ((chunkKey == null) ? 0 : chunkKey.hashCode());
-      result = prime * result + ((chunkNodeAddresses == null) ? 0 : chunkNodeAddresses.hashCode());
       return result;
    }
 
@@ -118,17 +83,11 @@ public class Chunk {
             return false;
       } else if (!chunkKey.equals(other.chunkKey))
          return false;
-      if (chunkNodeAddresses == null) {
-         if (other.chunkNodeAddresses != null)
-            return false;
-      } else if (!chunkNodeAddresses.equals(other.chunkNodeAddresses))
-         return false;
       return true;
    }
 
    @Override
    public String toString() {
-      return "Chunk [chunkKey=" + chunkKey + ", chunkNodeAddress=" + chunkNodeAddresses + ", data="
-               + data + "]";
+      return "Chunk [chunkKey=" + chunkKey + ", data=" + data + "]";
    }
 }

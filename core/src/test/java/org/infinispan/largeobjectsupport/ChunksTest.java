@@ -5,26 +5,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
-import org.infinispan.AdvancedCache;
-import org.infinispan.Cache;
 import org.infinispan.config.Configuration;
 import org.infinispan.distribution.DistributionManager;
 import org.infinispan.distribution.DistributionManagerImpl;
 import org.infinispan.distribution.TestAddress;
-import org.infinispan.lifecycle.ComponentStatus;
-import org.infinispan.manager.DefaultCacheManager;
-import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.remoting.transport.Address;
-import org.infinispan.util.concurrent.NotifyingFuture;
 import org.testng.annotations.Test;
 
 /**
@@ -60,7 +49,7 @@ public class ChunksTest {
             return false;
          }
       };
-      new Chunks<Object>(new Object(), inputStreamNotSupportingMark, null, null, null);
+      new Chunks<Object>(new Object(), inputStreamNotSupportingMark, null, null);
    }
 
    @Test(expectedExceptions = IllegalStateException.class)
@@ -68,7 +57,7 @@ public class ChunksTest {
       InputStream largeObject = new ByteArrayInputStream("This is a large object".getBytes());
       Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
                newDistributionManagerWithNumNodesInCluster(NUM_NODES_IN_CLUSTER),
-               newConfigurationWithNumOwnersAndMaxChunkSize(1, 2L), newEmbeddedCacheManager());
+               newConfigurationWithNumOwnersAndMaxChunkSize(1, 2L));
 
       for (Chunk chunk : objectUnderTest) {
          chunk.getChunkKey(); // Whatever
@@ -85,8 +74,7 @@ public class ChunksTest {
       InputStream largeObject = new ByteArrayInputStream(bytes);
       Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
                newDistributionManagerWithNumNodesInCluster(1000),
-               newConfigurationWithNumOwnersAndMaxChunkSize(1, maxChunkSizeInBytes),
-               newEmbeddedCacheManager());
+               newConfigurationWithNumOwnersAndMaxChunkSize(1, maxChunkSizeInBytes));
       List<Chunk> allChunks = new ArrayList<Chunk>();
 
       for (Chunk chunk : objectUnderTest) {
@@ -103,7 +91,7 @@ public class ChunksTest {
       InputStream largeObject = new ByteArrayInputStream("This is a large object".getBytes());
       Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
                newDistributionManagerWithNumNodesInCluster(NUM_NODES_IN_CLUSTER),
-               newConfigurationWithNumOwnersAndMaxChunkSize(1, 2L), newEmbeddedCacheManager());
+               newConfigurationWithNumOwnersAndMaxChunkSize(1, 2L));
       objectUnderTest.iterator().next(); // Should hold more than one chunk
 
       objectUnderTest.largeObjectMetadata();
@@ -117,8 +105,7 @@ public class ChunksTest {
       Object largeObjectKey = new Object();
       Chunks<Object> objectUnderTest = new Chunks<Object>(largeObjectKey, largeObject,
                newDistributionManagerWithNumNodesInCluster(NUM_NODES_IN_CLUSTER),
-               newConfigurationWithNumOwnersAndMaxChunkSize(1, maxChunkSizeInBytes),
-               newEmbeddedCacheManager());
+               newConfigurationWithNumOwnersAndMaxChunkSize(1, maxChunkSizeInBytes));
       for (Chunk chunk : objectUnderTest) {
          chunk.getChunkKey(); // Whatever
       }
@@ -136,7 +123,7 @@ public class ChunksTest {
       InputStream largeObject = new ByteArrayInputStream("This is a large object".getBytes());
       Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
                newDistributionManagerWithNumNodesInCluster(NUM_NODES_IN_CLUSTER),
-               newConfigurationWithNumOwnersAndMaxChunkSize(1, 2L), newEmbeddedCacheManager());
+               newConfigurationWithNumOwnersAndMaxChunkSize(1, 2L));
 
       objectUnderTest.iterator().remove();
    }
@@ -170,365 +157,5 @@ public class ChunksTest {
             return maxChunkSize;
          }
       };
-   }
-
-   private EmbeddedCacheManager newEmbeddedCacheManager() {
-      return new DefaultCacheManager() {
-
-         @Override
-         public <K, V> Cache<K, V> getCache(String cacheName, boolean create) {
-            // It is rather improbable that a given cache already contains
-            // a randomly generated key.
-            boolean containsKey = Math.random() < 1 / 100000;
-            return newCacheMaybeContainingKey(containsKey);
-         }
-
-         @Override
-         public Set<String> getCacheNames() {
-            int numberOfCaches = 100;
-            Set<String> cacheNames = new HashSet<String>(numberOfCaches);
-            for (int i = 0; i < numberOfCaches; i++) {
-               cacheNames.add("test.cache-" + i);
-            }
-            return cacheNames;
-         }
-
-      };
-   }
-
-   private <K, V> Cache<K, V> newCacheMaybeContainingKey(boolean containsKey) {
-      return new MockCache<K, V>(containsKey);
-   }
-
-   private static class MockCache<K, V> implements Cache<K, V> {
-
-      private final boolean containsKey;
-
-      /**
-       * Create a new MockCache.
-       * 
-       * @param containsKey
-       */
-      MockCache(boolean containsKey) {
-         this.containsKey = containsKey;
-      }
-
-      @Override
-      public V putIfAbsent(K key, V value) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putIfAbsent");
-      }
-
-      @Override
-      public boolean remove(Object key, Object value) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI remove");
-      }
-
-      @Override
-      public V replace(K key, V value) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI replace");
-      }
-
-      @Override
-      public boolean replace(K key, V oldValue, V newValue) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI replace");
-      }
-
-      @Override
-      public void clear() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI clear");
-      }
-
-      @Override
-      public boolean containsKey(Object key) {
-         return containsKey;
-      }
-
-      @Override
-      public boolean containsValue(Object value) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI containsValue");
-      }
-
-      @Override
-      public V get(Object key) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI get");
-      }
-
-      @Override
-      public boolean isEmpty() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI isEmpty");
-      }
-
-      @Override
-      public V put(K key, V value) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI put");
-      }
-
-      @Override
-      public void putAll(Map<? extends K, ? extends V> m) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putAll");
-      }
-
-      @Override
-      public V remove(Object key) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI remove");
-      }
-
-      @Override
-      public int size() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI size");
-      }
-
-      @Override
-      public void start() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI start");
-      }
-
-      @Override
-      public void stop() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI stop");
-      }
-
-      @Override
-      public void addListener(Object listener) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI addListener");
-      }
-
-      @Override
-      public void removeListener(Object listener) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI removeListener");
-      }
-
-      @Override
-      public Set<Object> getListeners() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI getListeners");
-      }
-
-      @Override
-      public void putForExternalRead(K key, V value) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putForExternalRead");
-      }
-
-      @Override
-      public void evict(K key) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI evict");
-      }
-
-      @Override
-      public Configuration getConfiguration() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI getConfiguration");
-      }
-
-      @Override
-      public boolean startBatch() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI startBatch");
-      }
-
-      @Override
-      public void endBatch(boolean successful) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI endBatch");
-      }
-
-      @Override
-      public String getName() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI getName");
-      }
-
-      @Override
-      public String getVersion() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI getVersion");
-      }
-
-      @Override
-      public EmbeddedCacheManager getCacheManager() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI getCacheManager");
-      }
-
-      @Override
-      public V put(K key, V value, long lifespan, TimeUnit unit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI put");
-      }
-
-      @Override
-      public V putIfAbsent(K key, V value, long lifespan, TimeUnit unit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putIfAbsent");
-      }
-
-      @Override
-      public void putAll(Map<? extends K, ? extends V> map, long lifespan, TimeUnit unit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putAll");
-      }
-
-      @Override
-      public V replace(K key, V value, long lifespan, TimeUnit unit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI replace");
-      }
-
-      @Override
-      public boolean replace(K key, V oldValue, V value, long lifespan, TimeUnit unit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI replace");
-      }
-
-      @Override
-      public V put(K key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdleTime,
-               TimeUnit maxIdleTimeUnit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI put");
-      }
-
-      @Override
-      public V putIfAbsent(K key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdleTime,
-               TimeUnit maxIdleTimeUnit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putIfAbsent");
-      }
-
-      @Override
-      public void putAll(Map<? extends K, ? extends V> map, long lifespan, TimeUnit lifespanUnit,
-               long maxIdleTime, TimeUnit maxIdleTimeUnit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putAll");
-      }
-
-      @Override
-      public V replace(K key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdleTime,
-               TimeUnit maxIdleTimeUnit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI replace");
-      }
-
-      @Override
-      public boolean replace(K key, V oldValue, V value, long lifespan, TimeUnit lifespanUnit,
-               long maxIdleTime, TimeUnit maxIdleTimeUnit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI replace");
-      }
-
-      @Override
-      public NotifyingFuture<V> putAsync(K key, V value) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putAsync");
-      }
-
-      @Override
-      public NotifyingFuture<V> putAsync(K key, V value, long lifespan, TimeUnit unit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putAsync");
-      }
-
-      @Override
-      public NotifyingFuture<V> putAsync(K key, V value, long lifespan, TimeUnit lifespanUnit,
-               long maxIdle, TimeUnit maxIdleUnit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putAsync");
-      }
-
-      @Override
-      public NotifyingFuture<Void> putAllAsync(Map<? extends K, ? extends V> data) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putAllAsync");
-      }
-
-      @Override
-      public NotifyingFuture<Void> putAllAsync(Map<? extends K, ? extends V> data, long lifespan,
-               TimeUnit unit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putAllAsync");
-      }
-
-      @Override
-      public NotifyingFuture<Void> putAllAsync(Map<? extends K, ? extends V> data, long lifespan,
-               TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putAllAsync");
-      }
-
-      @Override
-      public NotifyingFuture<Void> clearAsync() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI clearAsync");
-      }
-
-      @Override
-      public NotifyingFuture<V> putIfAbsentAsync(K key, V value) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putIfAbsentAsync");
-      }
-
-      @Override
-      public NotifyingFuture<V> putIfAbsentAsync(K key, V value, long lifespan, TimeUnit unit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putIfAbsentAsync");
-      }
-
-      @Override
-      public NotifyingFuture<V> putIfAbsentAsync(K key, V value, long lifespan,
-               TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putIfAbsentAsync");
-      }
-
-      @Override
-      public NotifyingFuture<V> removeAsync(Object key) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI removeAsync");
-      }
-
-      @Override
-      public NotifyingFuture<Boolean> removeAsync(Object key, Object value) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI removeAsync");
-      }
-
-      @Override
-      public NotifyingFuture<V> replaceAsync(K key, V value) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI replaceAsync");
-      }
-
-      @Override
-      public NotifyingFuture<V> replaceAsync(K key, V value, long lifespan, TimeUnit unit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI replaceAsync");
-      }
-
-      @Override
-      public NotifyingFuture<V> replaceAsync(K key, V value, long lifespan, TimeUnit lifespanUnit,
-               long maxIdle, TimeUnit maxIdleUnit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI replaceAsync");
-      }
-
-      @Override
-      public NotifyingFuture<Boolean> replaceAsync(K key, V oldValue, V newValue) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI replaceAsync");
-      }
-
-      @Override
-      public NotifyingFuture<Boolean> replaceAsync(K key, V oldValue, V newValue, long lifespan,
-               TimeUnit unit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI replaceAsync");
-      }
-
-      @Override
-      public NotifyingFuture<Boolean> replaceAsync(K key, V oldValue, V newValue, long lifespan,
-               TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI replaceAsync");
-      }
-
-      @Override
-      public NotifyingFuture<V> getAsync(K key) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI getAsync");
-      }
-
-      @Override
-      public AdvancedCache<K, V> getAdvancedCache() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI getAdvancedCache");
-      }
-
-      @Override
-      public void compact() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI compact");
-      }
-
-      @Override
-      public ComponentStatus getStatus() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI getStatus");
-      }
-
-      @Override
-      public Set<K> keySet() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI keySet");
-      }
-
-      @Override
-      public Collection<V> values() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI values");
-      }
-
-      @Override
-      public Set<java.util.Map.Entry<K, V>> entrySet() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI entrySet");
-      }
-
    }
 }
