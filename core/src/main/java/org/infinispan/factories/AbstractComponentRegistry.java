@@ -177,6 +177,7 @@ public abstract class AbstractComponentRegistry implements Lifecycle, Cloneable 
       s.add(DistributionManagerFactory.class);
       s.add(RecoveryManagerFactory.class);
       s.add(TransactionTableFactory.class);
+      s.add(LargeObjectMetadataManagerFactory.class);
       return s;
    }
 

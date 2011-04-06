@@ -25,8 +25,12 @@ import java.util.concurrent.ConcurrentMap;
 
 import net.jcip.annotations.ThreadSafe;
 
+import org.infinispan.manager.CacheContainer;
+
 /**
- * LargeObjectMetadataImpl.
+ * Default implementation of {@link LargeObjectMetadata <code>LargeObjectMetadata</code>}, backed by
+ * {@link java.util.concurrent.ConcurrentHashMap <code>ConcurrentHashMap</code>}. This will usually
+ * be a <code>Cache</code>.
  * 
  * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
  * @since 5.1
@@ -34,31 +38,33 @@ import net.jcip.annotations.ThreadSafe;
 @ThreadSafe
 public class LargeObjectMetadataManagerImpl implements LargeObjectMetadataManager {
 
-   private ConcurrentMap<Object, LargeObjectMetadata<Object>> largeObjectKeyToMetadata;
+   private final CacheContainer cacheContainer;
 
-   /**
-    * Create a new LargeObjectMetadataManagerImpl.
-    * 
-    * @param largeObjectKeyToMetadata
-    */
-   public LargeObjectMetadataManagerImpl(
-            ConcurrentMap<Object, LargeObjectMetadata<Object>> largeObjectKeyToMetadata) {
-      this.largeObjectKeyToMetadata = largeObjectKeyToMetadata;
+   private final String largeObjectMetadataCacheName;
+
+   public LargeObjectMetadataManagerImpl(CacheContainer cacheContainer,
+            final String largeObjectMetadataCacheName) {
+      this.cacheContainer = cacheContainer;
+      this.largeObjectMetadataCacheName = largeObjectMetadataCacheName;
    }
 
    @Override
    public <K> boolean alreadyUsedByLargeObject(K largeObjectKey) {
-      return largeObjectKeyToMetadata.containsKey(largeObjectKey);
+      return largeObjectKeyToMetadata().containsKey(largeObjectKey);
    }
 
    @Override
    public <K> LargeObjectMetadata<K> correspondingLargeObjectMetadata(K largeObjectKey) {
-      return (LargeObjectMetadata<K>) largeObjectKeyToMetadata.get(largeObjectKey);
+      return (LargeObjectMetadata<K>) largeObjectKeyToMetadata().get(largeObjectKey);
    }
 
    @Override
    public <K> void storeLargeObjectMetadata(LargeObjectMetadata<K> largeObjectMetadata) {
-      largeObjectKeyToMetadata.putIfAbsent(largeObjectMetadata.getLargeObjectKey(),
+      largeObjectKeyToMetadata().putIfAbsent(largeObjectMetadata.getLargeObjectKey(),
                (LargeObjectMetadata<Object>) largeObjectMetadata);
+   }
+
+   private ConcurrentMap<Object, LargeObjectMetadata<Object>> largeObjectKeyToMetadata() {
+      return cacheContainer.getCache(largeObjectMetadataCacheName);
    }
 }
