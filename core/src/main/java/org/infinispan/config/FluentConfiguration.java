@@ -769,6 +769,51 @@ public class FluentConfiguration extends AbstractFluentConfigurationBean {
    public static interface JmxStatisticsConfig extends FluentTypes {}
 
    public static interface InvocationBatchingConfig extends FluentTypes {}
+   
+   /**
+    * Configures INFINISPAN's {@link org.infinispan.largeobject <code>LargeObjectSupport</code>}.
+    * 
+    * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
+    * @since 5.1
+    */
+   public interface LargeObjectSupportConfig extends FluentTypes {
+
+      public static final String DEFAULT_LARGEOBJECT_METADATA_CACHE = "__largeObjectMetadataCache__";
+      
+      public static final String DEFAULT_CHUNK_KEY_PREFIX = "__CHUNK_KEY__";
+      
+      public static final long DEFAULT_MAXIMUM_CHUNK_SIZE_IN_BYTES = 100 * 1024L * 1024L;
+
+      /**
+       * Defines the maximum size in bytes per {@link org.infinispan.largeobjectsupport.Chunk
+       * <code>Chunk</code>}. Should be adjusted according to the available heap space.
+       * 
+       * @param maximumChunkSizeInBytes
+       * @return this
+       */
+      LargeObjectSupportConfig maximumChunkSizeInBytes(Long maximumChunkSizeInBytes);
+
+      /**
+       * Sets the name of the cache used to store {@link LargeObjectMetadata
+       * <code>LargeObjectMetadata</code>}, i.e. the mapping from a large object's key to the list
+       * of chunk keys. If none is given, this name defaults to
+       * {@link #DEFAULT_LARGEOBJECT_METADATA_CACHE}.
+       * 
+       * @param largeObjectMetadataCacheName
+       * @return this
+       */
+      LargeObjectSupportConfig largeObjecMetadataCacheName(String largeObjectMetadataCacheName);
+      
+      /**
+       * Sets the prefix to be prepended to each generated {@code chunk key}. If none is given this
+       * prefix defaults to {@link #DEFAULT_CHUNK_KEY_PREFIX}.
+       * 
+       * @param chunkKeyPrefix
+       * @return this
+       */
+      LargeObjectSupportConfig chunkKeyPrefix(String chunkKeyPrefix);
+   }
+
 }
 
 interface FluentTypes {
@@ -824,6 +869,8 @@ interface FluentTypes {
     * this method is called, it automatically enables invocation batching.
     */
    FluentConfiguration.InvocationBatchingConfig invocationBatching();
+   
+   FluentConfiguration.LargeObjectSupportConfig largeObjectSupport();
 
    Configuration build();
 }
@@ -902,6 +949,11 @@ abstract class AbstractFluentConfigurationBean extends AbstractNamedCacheConfigu
    @Override
    public FluentConfiguration.InvocationBatchingConfig invocationBatching() {
       return config.invocationBatching.enabled(true);
+   }
+   
+   @Override
+   public FluentConfiguration.LargeObjectSupportConfig largeObjectSupport() {
+      return config.largeObjectSupport;
    }
 
    public FluentConfiguration.AsyncConfig async() {

@@ -123,7 +123,7 @@ public class LargeObjectSupportInterceptor<K> extends CommandInterceptor {
                configuration);
       for (Chunk chunk : chunks) {
          final CacheEntry chunkCacheEntry = entryFactory.wrapEntryForWriting(ctx,
-                  chunk.getChunkKey(), false, false, false, false, false);
+                  chunk.getChunkKey(), true, false, false, false, false);
          chunkCacheEntry.setValue(chunk.getData());
          ctx.putLookedUpEntry(chunk.getChunkKey(), chunkCacheEntry);
 

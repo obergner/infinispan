@@ -90,48 +90,6 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
    private static final long serialVersionUID = 5553791890144997466L;
    private static final Log log = LogFactory.getLog(Configuration.class);
 
-   /**
-    * Configures INFINISPAN's {@link org.infinispan.largeobject <code>LargeObjectSupport</code>}.
-    * 
-    * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
-    * @since 5.1
-    */
-   public interface LargeObjectSupportConfig {
-
-      public static final String DEFAULT_LARGEOBJECT_METADATA_CACHE = "__largeObjectMetadataCache__";
-      
-      public static final String DEFAULT_CHUNK_KEY_PREFIX = "__CHUNK_KEY__";
-
-      /**
-       * Defines the maximum size in bytes per {@link org.infinispan.largeobjectsupport.Chunk
-       * <code>Chunk</code>}. Should be adjusted according to the available heap space.
-       * 
-       * @param maximumChunkSizeInBytes
-       * @return this
-       */
-      LargeObjectSupportConfig maximumChunkSizeInBytes(Long maximumChunkSizeInBytes);
-
-      /**
-       * Sets the name of the cache used to store {@link LargeObjectMetadata
-       * <code>LargeObjectMetadata</code>}, i.e. the mapping from a large object's key to the list
-       * of chunk keys. If none is given, this name defaults to
-       * {@link #DEFAULT_LARGEOBJECT_METADATA_CACHE}.
-       * 
-       * @param largeObjectMetadataCacheName
-       * @return this
-       */
-      LargeObjectSupportConfig largeObjecMetadataCacheName(String largeObjectMetadataCacheName);
-      
-      /**
-       * Sets the prefix to be prepended to each generated {@code chunk key}. If none is given this
-       * prefix defaults to {@link #DEFAULT_CHUNK_KEY_PREFIX}.
-       * 
-       * @param chunkKeyPrefix
-       * @return this
-       */
-      LargeObjectSupportConfig chunkKeyPrefix(String chunkKeyPrefix);
-   }
-
    // reference to a global configuration
    @XmlTransient
    private GlobalConfiguration globalConfiguration;
@@ -198,7 +156,7 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
    QueryConfigurationBean indexing = new QueryConfigurationBean().setConfiguration(this);
 
    @XmlElement
-   private LargeObjectSupportType largeObjectSupport = new LargeObjectSupportType();
+   LargeObjectSupportType largeObjectSupport = new LargeObjectSupportType();
    
    public LargeObjectSupportConfig configureLargeObjectSupport() {
       return largeObjectSupport;
@@ -4309,14 +4267,14 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
     */
    @XmlAccessorType(XmlAccessType.PROPERTY)
    @ConfigurationDoc(name = "largeObjectSupport")
-   public static class LargeObjectSupportType extends AbstractNamedCacheConfigurationBean implements
+   public static class LargeObjectSupportType extends AbstractFluentConfigurationBean implements
             LargeObjectSupportConfig {
 
       /** The serialVersionUID */
       private static final long serialVersionUID = 4994289341534405833L;
 
       @ConfigurationDocRef(bean = Configuration.class, targetElement = "setMaximumChunkSizeInBytes")
-      protected Long maximumChunkSizeInBytes = 100 * 1024L * 1024L;
+      protected Long maximumChunkSizeInBytes = DEFAULT_MAXIMUM_CHUNK_SIZE_IN_BYTES;
 
       @ConfigurationDocRef(bean = Configuration.class, targetElement = "setLargeObjectMetadataCacheName")
       protected String largeObjectMetadataCacheName = DEFAULT_LARGEOBJECT_METADATA_CACHE;
