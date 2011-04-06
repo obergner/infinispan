@@ -340,21 +340,24 @@ public class ProgrammaticConfigurationTest extends AbstractInfinispanTest {
       assert c.isWriteSkewCheck();
       
       // Test LargeObjectSupport configuration
-      assert c.getLargeObjectSupportConfig().getMaximumChunkSizeInBytes()
-               .equals(Long.valueOf(100 * 1024L * 1024L));
+      assert c.getLargeObjectSupportConfig()
+               .getMaximumChunkSizeInBytes()
+               .equals(Long
+                        .valueOf(FluentConfiguration.LargeObjectSupportConfig.DEFAULT_MAXIMUM_CHUNK_SIZE_IN_BYTES));
       c.configureLargeObjectSupport().maximumChunkSizeInBytes(23456789L);
       assert c.getLargeObjectSupportConfig().getMaximumChunkSizeInBytes()
                .equals(Long.valueOf(23456789L));
 
-      assert c.getLargeObjectSupportConfig().getLargeObjectMetadataCacheName()
-               .equals(Configuration.LargeObjectSupportConfig.DEFAULT_LARGEOBJECT_METADATA_CACHE);
+      assert c.getLargeObjectSupportConfig()
+               .getLargeObjectMetadataCacheName()
+               .equals(FluentConfiguration.LargeObjectSupportConfig.DEFAULT_LARGEOBJECT_METADATA_CACHE);
       String largeObjectMetadataCacheName = "testLargeOjectMetadataCacheName";
       c.getLargeObjectSupportConfig().largeObjecMetadataCacheName(largeObjectMetadataCacheName);
       assert c.getLargeObjectSupportConfig().getLargeObjectMetadataCacheName()
                .equals(largeObjectMetadataCacheName);
-      
+
       assert c.getLargeObjectSupportConfig().getChunkKeyPrefix()
-               .equals(Configuration.LargeObjectSupportConfig.DEFAULT_CHUNK_KEY_PREFIX);
+               .equals(FluentConfiguration.LargeObjectSupportConfig.DEFAULT_CHUNK_KEY_PREFIX);
       String chunkKeyPrefix = "testChunkKeyPrefix";
       c.getLargeObjectSupportConfig().chunkKeyPrefix(chunkKeyPrefix);
       assert c.getLargeObjectSupportConfig().getChunkKeyPrefix().equals(chunkKeyPrefix);
