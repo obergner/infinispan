@@ -352,6 +352,12 @@ public class ProgrammaticConfigurationTest extends AbstractInfinispanTest {
       c.getLargeObjectSupportConfig().largeObjecMetadataCacheName(largeObjectMetadataCacheName);
       assert c.getLargeObjectSupportConfig().getLargeObjectMetadataCacheName()
                .equals(largeObjectMetadataCacheName);
+      
+      assert c.getLargeObjectSupportConfig().getChunkKeyPrefix()
+               .equals(Configuration.LargeObjectSupportConfig.DEFAULT_CHUNK_KEY_PREFIX);
+      String chunkKeyPrefix = "testChunkKeyPrefix";
+      c.getLargeObjectSupportConfig().chunkKeyPrefix(chunkKeyPrefix);
+      assert c.getLargeObjectSupportConfig().getChunkKeyPrefix().equals(chunkKeyPrefix);
    }
 
 }

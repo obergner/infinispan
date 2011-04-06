@@ -35,7 +35,6 @@ import org.infinispan.largeobjectsupport.Chunk;
 import org.infinispan.largeobjectsupport.Chunks;
 import org.infinispan.largeobjectsupport.LargeObjectMetadata;
 import org.infinispan.largeobjectsupport.LargeObjectMetadataManager;
-import org.infinispan.manager.EmbeddedCacheManager;
 
 /**
  * <p>
@@ -69,19 +68,15 @@ public class LargeObjectSupportInterceptor<K> extends CommandInterceptor {
 
    private DistributionManager distributionManager;
 
-   private EmbeddedCacheManager embeddedCacheManager;
-
    private EntryFactory entryFactory;
 
    private LargeObjectMetadataManager largeObjectMetadataManager;
 
    @Inject
    public void init(Configuration configuration, DistributionManager distributionManager,
-            EmbeddedCacheManager embeddedCacheManager, EntryFactory entryFactory,
-            LargeObjectMetadataManager largeObjectMetadataManager) {
+            EntryFactory entryFactory, LargeObjectMetadataManager largeObjectMetadataManager) {
       this.configuration = configuration;
       this.distributionManager = distributionManager;
-      this.embeddedCacheManager = embeddedCacheManager;
       this.entryFactory = entryFactory;
       this.largeObjectMetadataManager = largeObjectMetadataManager;
    }
@@ -125,7 +120,7 @@ public class LargeObjectSupportInterceptor<K> extends CommandInterceptor {
             PutKeyValueCommand command) throws InterruptedException, Throwable {
       InputStream largeObject = InputStream.class.cast(command.getValue());
       Chunks<K> chunks = new Chunks<K>((K) command.getKey(), largeObject, distributionManager,
-               configuration, embeddedCacheManager);
+               configuration);
       for (Chunk chunk : chunks) {
          final CacheEntry chunkCacheEntry = entryFactory.wrapEntryForWriting(ctx,
                   chunk.getChunkKey(), false, false, false, false, false);

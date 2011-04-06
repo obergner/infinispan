@@ -28,15 +28,12 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Random;
 
 import net.jcip.annotations.NotThreadSafe;
 
-import org.infinispan.Cache;
+import org.infinispan.affinity.KeyGenerator;
 import org.infinispan.config.Configuration;
 import org.infinispan.distribution.DistributionManager;
-import org.infinispan.manager.EmbeddedCacheManager;
-import org.infinispan.remoting.transport.Address;
 
 /**
  * <p>
@@ -86,27 +83,20 @@ public class Chunks<K> implements Iterable<Chunk> {
     */
    private final DistributionManager distributionManager;
 
-   /**
-    * Embedded cache manager: needed to check whether a given chunk key has already been used before
-    * for a different object.
-    */
-   private final EmbeddedCacheManager embeddedCacheManager;
-
-   private final ChunkKeyProducer chunkKeyProducer = new ChunkKeyProducer();
+   private final ChunkKeyProducer chunkKeyProducer;
 
    private long numberOfAlreadyReadBytes = 0L;
 
    public Chunks(K largeObjectKey, InputStream largeObject,
-            DistributionManager distributionManager, Configuration configuration,
-            EmbeddedCacheManager embeddedCacheManager) {
+            DistributionManager distributionManager, Configuration configuration) {
       if (!largeObject.markSupported())
          throw new IllegalArgumentException("The supplied LargeObject InputStream does not "
                   + "support mark(). This, however, is required.");
       this.largeObjectKey = largeObjectKey;
       this.largeObject = largeObject;
       this.distributionManager = distributionManager;
-      this.embeddedCacheManager = embeddedCacheManager;
       this.maxChunkSizeInBytes = configuration.getMaximumChunkSizeInBytes();
+      this.chunkKeyProducer = new ChunkKeyProducer(configuration.getChunkKeyPrefix());
    }
 
    @Override
@@ -141,95 +131,28 @@ public class Chunks<K> implements Iterable<Chunk> {
       }
    }
 
-   private class ChunkKeyProducer {
+   private final class ChunkKeyProducer {
 
-      private final List<ChunkKeyNodeAddressesTuple> alreadyUsedUpChunkKeysAndNodeAddresses = new ArrayList<ChunkKeyNodeAddressesTuple>();
+      private final List<String> alreadyProducedChunkKeys = new ArrayList<String>();
 
-      private final Random randomGenerator = new Random();
+      private final KeyGenerator<String> keyGenerator;
+
+      ChunkKeyProducer(String keyPrefix) {
+         this.keyGenerator = new PrefixingUuidBasedKeyGenerator(keyPrefix);
+      }
 
       List<String> chunkKeys() {
-         final List<String> allChunkKeys = new ArrayList<String>(
-                  alreadyUsedUpChunkKeysAndNodeAddresses.size());
-         for (ChunkKeyNodeAddressesTuple chunkKeyAndNodeAddresses : alreadyUsedUpChunkKeysAndNodeAddresses)
-            allChunkKeys.add(chunkKeyAndNodeAddresses.chunkKey);
-         return allChunkKeys;
+         return Collections.unmodifiableList(alreadyProducedChunkKeys);
       }
 
-      ChunkKeyNodeAddressesTuple nextChunkKeyAndNodeAddresses() {
-         // TODO: Shouldn't we impose a (configurable) upper limit to the number of attempts at
-         // producing a valid new chunk key?
-         while (true) {
-            /*
-             * TODO: Find a better algorithm for producing random chunk keys.
-             * 
-             * Requirements:
-             * 
-             * 1. Should distribute evenly across our constant hash ring. 2. Should produce a string
-             * of a predefind length.
-             */
-            byte[] chunkKeyBytes = new byte[20];
-            randomGenerator.nextBytes(chunkKeyBytes);
-            String chunkKeyCandidate = new String(chunkKeyBytes);
-            List<Address> correspondingNodeAddresses = distributionManager
-                     .locate(chunkKeyCandidate);
-            if (isAllowed(chunkKeyCandidate, correspondingNodeAddresses)) {
-               ChunkKeyNodeAddressesTuple allowedChunkKeyAndNodeAddresses = new ChunkKeyNodeAddressesTuple(
-                        chunkKeyCandidate, correspondingNodeAddresses);
-               alreadyUsedUpChunkKeysAndNodeAddresses.add(allowedChunkKeyAndNodeAddresses);
-               return allowedChunkKeyAndNodeAddresses;
-            }
-         }
-      }
-
-      private boolean isAllowed(String chunkKey, List<Address> correspondingNodeAddresses) {
-         return !hasAlreadyBeenProduced(chunkKey) && !isAlreadyUsedByDifferentLargeObject(chunkKey)
-                  && !isStoredInAnAlreadyUsedNode(chunkKey, correspondingNodeAddresses);
-      }
-
-      private boolean hasAlreadyBeenProduced(String chunkKey) {
-         for (ChunkKeyNodeAddressesTuple chunkKeyAndNodeAddress : alreadyUsedUpChunkKeysAndNodeAddresses) {
-            if (chunkKeyAndNodeAddress.chunkKey.equals(chunkKey))
-               return true;
-         }
-
-         return false;
-      }
-
-      private boolean isAlreadyUsedByDifferentLargeObject(String chunkKey) {
-         for (String cacheName : embeddedCacheManager.getCacheNames()) {
-            Cache<?, ?> cache = embeddedCacheManager.getCache(cacheName, false);
-            if (cache != null && cache.containsKey(chunkKey))
-               return true;
-         }
-
-         return false;
-      }
-
-      private boolean isStoredInAnAlreadyUsedNode(String chunkKey,
-               List<Address> correspondingNodeAddresses) {
-         // FIXME: Is this really safe during a rehash?
-         for (ChunkKeyNodeAddressesTuple chunkKeyAndNodeAddresses : alreadyUsedUpChunkKeysAndNodeAddresses) {
-            if (!Collections.disjoint(correspondingNodeAddresses,
-                     chunkKeyAndNodeAddresses.nodeAddresses))
-               return true;
-         }
-         return false;
+      String nextChunkKey() {
+         String nextKey = keyGenerator.getKey();
+         alreadyProducedChunkKeys.add(nextKey);
+         return nextKey;
       }
    }
 
-   private static class ChunkKeyNodeAddressesTuple {
-
-      private final String chunkKey;
-
-      private final List<Address> nodeAddresses;
-
-      ChunkKeyNodeAddressesTuple(String chunkKey, List<Address> nodeAddresses) {
-         this.chunkKey = chunkKey;
-         this.nodeAddresses = nodeAddresses;
-      }
-   }
-
-   private class ChunkIterator implements Iterator<Chunk> {
+   private final class ChunkIterator implements Iterator<Chunk> {
 
       private static final int MAX_BUFFER_SIZE_IN_BYTES = 4 * 1024;
 
@@ -255,11 +178,9 @@ public class Chunks<K> implements Iterable<Chunk> {
                         : (int) (maxChunkSizeInBytes - chunkData.size());
             }
 
-            ChunkKeyNodeAddressesTuple chunkKeyAndNodeAddress = chunkKeyProducer
-                     .nextChunkKeyAndNodeAddresses();
+            String chunkKey = chunkKeyProducer.nextChunkKey();
 
-            return new Chunk(chunkKeyAndNodeAddress.chunkKey, chunkKeyAndNodeAddress.nodeAddresses,
-                     chunkData.toByteArray());
+            return new Chunk(chunkKey, chunkData.toByteArray());
          } catch (IOException e) {
             throw new RuntimeException("Failed to read Chunk from LargeObject InputStream: "
                      + e.getMessage(), e);
