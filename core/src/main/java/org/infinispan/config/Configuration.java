@@ -80,6 +80,24 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
 
    private static final long serialVersionUID = 5553791890144997466L;
 
+   /**
+    * Configures INFINISPAN's {@link org.infinispan.largeobject <code>LargeObjectSupport</code>}.
+    * 
+    * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
+    * @since 5.1
+    */
+   public interface LargeObjectSupportConfig {
+
+      /**
+       * Defines the maximum size in bytes per {@link org.infinispan.largeobjectsupport.Chunk
+       * <code>Chunk</code>}. Should be adjusted according to the available heap space.
+       * 
+       * @param maximumChunkSizeInBytes
+       * @return
+       */
+      LargeObjectSupportConfig maximumChunkSizeInBytes(Long maximumChunkSizeInBytes);
+   }
+
    // reference to a global configuration
    @XmlTransient
    private GlobalConfiguration globalConfiguration;
@@ -138,9 +156,16 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
 
    @XmlElement
    DeadlockDetectionType deadlockDetection = new DeadlockDetectionType().setConfiguration(this);
-
+   
    @XmlElement
    QueryConfigurationBean indexing = new QueryConfigurationBean().setConfiguration(this);
+
+   @XmlElement
+   private LargeObjectSupportType largeObjectSupport = new LargeObjectSupportType();
+   
+   public LargeObjectSupportConfig configureLargeObjectSupport() {
+      return largeObjectSupport;
+   }
 
    @SuppressWarnings("unused")
    @Start(priority = 1)
@@ -1288,6 +1313,14 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
    public boolean isUseSynchronizationForTransactions() {
       return transaction.isUseSynchronization();
    }
+   
+   public LargeObjectSupportType getLargeObjectSupportConfig() {
+      return largeObjectSupport;
+   }
+   
+   public long getMaximumChunkSizeInBytes() {
+      return largeObjectSupport.maximumChunkSizeInBytes;
+   }
 
    // ------------------------------------------------------------------------------------------------------------
    //   HELPERS
@@ -1480,7 +1513,6 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
     *
     * @return List of custom interceptors, never null
     */
-   @SuppressWarnings("unchecked")
    public List<CustomInterceptorConfig> getCustomInterceptors() {
       return customInterceptors.customInterceptors == null ? Collections.<CustomInterceptorConfig>emptyList() : customInterceptors.customInterceptors;
    }
@@ -1562,7 +1594,7 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
       protected Integer cacheStopTimeout = 30000;
 
       @XmlElement
-      protected RecoveryType recovery = (RecoveryType) new RecoveryType();
+      protected RecoveryType recovery = new RecoveryType();
 
       public TransactionType(String transactionManagerLookupClass) {
          this.transactionManagerLookupClass = transactionManagerLookupClass;
@@ -4117,6 +4149,90 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
       
       public String toString(){
          return "Indexing[enabled="+enabled+",localOnly="+indexLocalOnly+"]";
+      }
+
+   }
+   
+   /**
+    * Configures INFINISPAN's {@link org.infinispan.largeobjectsupport
+    * <code>Large Object Support</code>}.
+    * 
+    * @see <a href="../../../config.html#ce_default_largeObjectSupport">Configuration reference</a>
+    * 
+    * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
+    * @since 5.1
+    */
+   @XmlAccessorType(XmlAccessType.PROPERTY)
+   @ConfigurationDoc(name = "largeObjectSupport")
+   public static class LargeObjectSupportType extends AbstractNamedCacheConfigurationBean implements
+            LargeObjectSupportConfig {
+
+      /** The serialVersionUID */
+      private static final long serialVersionUID = 4994289341534405833L;
+
+      @ConfigurationDocRef(bean = Configuration.class, targetElement = "setMaximumChunkSizeInBytes")
+      protected Long maximumChunkSizeInBytes = 100 * 1024L * 1024L;
+
+      public void accept(ConfigurationBeanVisitor v) {
+         v.visitLargeObjectSupportType(this);
+      }
+
+      /**
+       * The maximum size (in bytes) per {@link org.infinispan.largeobjectsupport.Chunk
+       * <code>chunk</code>}.
+       * 
+       * @return The maximum size (in bytes) per {@link org.infinispan.largeobjectsupport.Chunk
+       *         <code>chunk</code>}.
+       */
+      @XmlAttribute
+      public Long getMaximumChunkSizeInBytes() {
+         return maximumChunkSizeInBytes;
+      }
+
+      /**
+       * Defines the maximum size (in bytes) per {@link org.infinispan.largeobjectsupport.Chunk
+       * <code>chunk</code>}. Should be defined according to each node's available heap space.
+       * 
+       * @param maximumChunkSizeInBytes
+       *           The maximum size (in bytes) per {@link org.infinispan.largeobjectsupport.Chunk
+       *           <code>chunk</code>}. Should be defined according to each node's available heap
+       *           space.
+       */
+      public void setMaximumChunkSizeInBytes(Long maximumChunkSizeInBytes) {
+         testImmutability("maximumChunkSizeInBytes");
+         this.maximumChunkSizeInBytes = maximumChunkSizeInBytes;
+      }
+
+      @Override
+      public LargeObjectSupportConfig maximumChunkSizeInBytes(Long maximumChunkSizeInBytes) {
+         this.maximumChunkSizeInBytes = maximumChunkSizeInBytes;
+         return this;
+      }
+
+      @Override
+      public int hashCode() {
+         final int prime = 31;
+         int result = 1;
+         result = prime * result
+                  + ((maximumChunkSizeInBytes == null) ? 0 : maximumChunkSizeInBytes.hashCode());
+         return result;
+      }
+
+      @Override
+      public boolean equals(Object obj) {
+         if (this == obj)
+            return true;
+         if (obj == null)
+            return false;
+         if (getClass() != obj.getClass())
+            return false;
+         LargeObjectSupportType other = (LargeObjectSupportType) obj;
+         if (maximumChunkSizeInBytes == null) {
+            if (other.maximumChunkSizeInBytes != null)
+               return false;
+         } else if (!maximumChunkSizeInBytes.equals(other.maximumChunkSizeInBytes))
+            return false;
+         return true;
       }
    }
 
