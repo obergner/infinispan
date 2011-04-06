@@ -55,7 +55,7 @@ public class LargeObjectMetadata<K> implements Serializable, Iterable<String> {
     * @param totalSizeInBytes
     * @param chunkKeys
     */
-   LargeObjectMetadata(K largeObjectKey, long totalSizeInBytes, String[] chunkKeys) {
+   public LargeObjectMetadata(K largeObjectKey, long totalSizeInBytes, String[] chunkKeys) {
       this.largeObjectKey = largeObjectKey;
       this.totalSizeInBytes = totalSizeInBytes;
       this.chunkKeys = chunkKeys;
