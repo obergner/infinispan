@@ -133,4 +133,6 @@ public interface ConfigurationBeanVisitor {
    void visitRecoveryType(Configuration.RecoveryType config);
 
    void visitStoreAsBinaryType(Configuration.StoreAsBinary config);
+   
+   void visitLargeObjectSupportType(Configuration.LargeObjectSupportType config);
 }

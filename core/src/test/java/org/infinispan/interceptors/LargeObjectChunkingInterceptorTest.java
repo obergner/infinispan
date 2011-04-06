@@ -1,5 +1,18 @@
 package org.infinispan.interceptors;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.TimeUnit;
+
 import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
 import org.infinispan.commands.write.WriteLargeObjectToKeyCommand;
@@ -16,8 +29,6 @@ import org.infinispan.context.impl.NonTxInvocationContext;
 import org.infinispan.distribution.DistributionManager;
 import org.infinispan.distribution.DistributionManagerImpl;
 import org.infinispan.distribution.TestAddress;
-import org.infinispan.distribution.ch.NodeTopologyInfo;
-import org.infinispan.distribution.ch.TopologyInfo;
 import org.infinispan.interceptors.base.CommandInterceptor;
 import org.infinispan.lifecycle.ComponentStatus;
 import org.infinispan.manager.DefaultCacheManager;
@@ -27,19 +38,6 @@ import org.infinispan.util.BidirectionalMap;
 import org.infinispan.util.concurrent.NotifyingFuture;
 import org.infinispan.util.concurrent.TimeoutException;
 import org.testng.annotations.Test;
-
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Test {@link LargeObjectChunkingInterceptor}.
@@ -65,9 +63,9 @@ public class LargeObjectChunkingInterceptorTest {
    public void testThatLargeObjectChunkingInterceptorRejectsTransactionalInvocationContext()
             throws Throwable {
       LargeObjectChunkingInterceptor<Object> objectUnderTest = new LargeObjectChunkingInterceptor<Object>();
-      objectUnderTest.init(newConfigurationWithNumOwners(1),
+      objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
                newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
-               newEntryFactory(), 3L);
+               newEntryFactory());
 
       LocalTxInvocationContext txCtx = new LocalTxInvocationContext() {
          @Override
@@ -92,9 +90,9 @@ public class LargeObjectChunkingInterceptorTest {
    public void testThatLargeObjectChunkingInterceptorCorrectlyCallsInterceptorPipelineForEachChunk()
             throws Throwable {
       LargeObjectChunkingInterceptor<Object> objectUnderTest = new LargeObjectChunkingInterceptor<Object>();
-      objectUnderTest.init(newConfigurationWithNumOwners(1),
+      objectUnderTest.init(newConfigurationWithNumOwnersAndMaxChunkSize(1, 3L),
                newDistributionManagerWithNumNodesInCluster(1000), newEmbeddedCacheManager(),
-               newEntryFactory(), 3L);
+               newEntryFactory());
 
       final List<byte[]> receivedChunkData = new ArrayList<byte[]>();
       CommandInterceptor recordingCommandInterceptor = new CommandInterceptor() {
@@ -132,16 +130,6 @@ public class LargeObjectChunkingInterceptorTest {
    }
 
    private DistributionManager newDistributionManagerWithNumNodesInCluster(int numNodesInCluster) {
-      TopologyInfo ti = new TopologyInfo();
-
-      for (int i = 0; i < numNodesInCluster; i++) {
-         Address nodeAddress = new Address() {
-         };
-         NodeTopologyInfo nti = new NodeTopologyInfo(String.valueOf(i), String.valueOf(i),
-                  String.valueOf(i), nodeAddress);
-         ti.addNodeTopologyInfo(nodeAddress, nti);
-      }
-
       DistributionManager distributionManager = new DistributionManagerImpl() {
 
          private Random randomGenerator = new Random();
@@ -153,16 +141,21 @@ public class LargeObjectChunkingInterceptorTest {
          }
 
       };
-      distributionManager.setTopologyInfo(ti);
 
       return distributionManager;
    }
 
-   private Configuration newConfigurationWithNumOwners(final int numOwners) {
+   private Configuration newConfigurationWithNumOwnersAndMaxChunkSize(final int numOwners,
+            final long maxChunkSize) {
       return new Configuration() {
          @Override
          public int getNumOwners() {
             return numOwners;
+         }
+
+         @Override
+         public long getMaximumChunkSizeInBytes() {
+            return maxChunkSize;
          }
       };
    }
