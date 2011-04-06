@@ -702,6 +702,8 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
       public static final String DEFAULT_LARGEOBJECT_METADATA_CACHE = "__largeObjectMetadataCache__";
       
       public static final String DEFAULT_CHUNK_KEY_PREFIX = "__CHUNK_KEY__";
+      
+      public static final long DEFAULT_MAXIMUM_CHUNK_SIZE_IN_BYTES = 100 * 1024L * 1024L;
 
       /**
        * Defines the maximum size in bytes per {@link org.infinispan.largeobjectsupport.Chunk
@@ -4090,7 +4092,7 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
       private static final long serialVersionUID = 4994289341534405833L;
 
       @ConfigurationDocRef(bean = Configuration.class, targetElement = "setMaximumChunkSizeInBytes")
-      protected Long maximumChunkSizeInBytes = 100 * 1024L * 1024L;
+      protected Long maximumChunkSizeInBytes = DEFAULT_MAXIMUM_CHUNK_SIZE_IN_BYTES;
 
       @ConfigurationDocRef(bean = Configuration.class, targetElement = "setLargeObjectMetadataCacheName")
       protected String largeObjectMetadataCacheName = DEFAULT_LARGEOBJECT_METADATA_CACHE;

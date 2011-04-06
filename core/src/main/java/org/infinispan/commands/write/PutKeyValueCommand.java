@@ -81,7 +81,7 @@ public class PutKeyValueCommand extends AbstractDataWriteCommand {
 
    public Object perform(InvocationContext ctx) throws Throwable {
       Object o;
-      if (isPutLargeObject())
+      if (!isPutLargeObject())
          o = handleRegularInvocation(ctx);
       else
          o = handleLargeObjectInvocation(ctx);

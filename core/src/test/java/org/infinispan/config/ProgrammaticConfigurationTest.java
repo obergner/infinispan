@@ -120,7 +120,7 @@ public class ProgrammaticConfigurationTest extends AbstractInfinispanTest {
       
       // Test LargeObjectSupport configuration
       assert c.getLargeObjectSupportConfig().getMaximumChunkSizeInBytes()
-               .equals(Long.valueOf(100 * 1024L * 1024L));
+               .equals(Long.valueOf(Configuration.LargeObjectSupportConfig.DEFAULT_MAXIMUM_CHUNK_SIZE_IN_BYTES));
       c.configureLargeObjectSupport().maximumChunkSizeInBytes(23456789L);
       assert c.getLargeObjectSupportConfig().getMaximumChunkSizeInBytes()
                .equals(Long.valueOf(23456789L));

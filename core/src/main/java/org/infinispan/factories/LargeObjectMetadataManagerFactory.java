@@ -21,13 +21,9 @@
  */
 package org.infinispan.factories;
 
-import java.util.concurrent.ConcurrentMap;
-
-import org.infinispan.Cache;
 import org.infinispan.config.Configuration;
 import org.infinispan.config.ConfigurationException;
 import org.infinispan.factories.annotations.DefaultFactoryFor;
-import org.infinispan.largeobjectsupport.LargeObjectMetadata;
 import org.infinispan.largeobjectsupport.LargeObjectMetadataManager;
 import org.infinispan.largeobjectsupport.LargeObjectMetadataManagerImpl;
 import org.infinispan.manager.EmbeddedCacheManager;
@@ -57,15 +53,13 @@ public class LargeObjectMetadataManagerFactory extends AbstractNamedCacheCompone
       boolean useDefaultLargeObjectMetadataCache = largeObjectMetadataCacheName
                .equals(Configuration.LargeObjectSupportConfig.DEFAULT_LARGEOBJECT_METADATA_CACHE);
 
-      Cache<Object, LargeObjectMetadata<Object>> largeObjectMetadataCache;
       if (useDefaultLargeObjectMetadataCache) {
          if (log.isTraceEnabled())
             log.trace("Using default LargeObjectMetadataCache");
-         cm.defineConfiguration(
-                  Configuration.LargeObjectSupportConfig.DEFAULT_LARGEOBJECT_METADATA_CACHE,
-                  getDefaultLargeObjectMetadataCacheConfig());
-         largeObjectMetadataCache = cm
-                  .getCache(Configuration.LargeObjectSupportConfig.DEFAULT_LARGEOBJECT_METADATA_CACHE);
+         if (!cm.cacheExists(largeObjectMetadataCacheName)) {
+            cm.defineConfiguration(largeObjectMetadataCacheName,
+                     getDefaultLargeObjectMetadataCacheConfig());
+         }
       } else {
          if (!cm.cacheExists(largeObjectMetadataCacheName))
             throw new ConfigurationException("The cache named [" + largeObjectMetadataCacheName
@@ -73,13 +67,12 @@ public class LargeObjectMetadataManagerFactory extends AbstractNamedCacheCompone
                      + "LargeObjectMetadataCache. However, this cache does not exist.");
          if (log.isTraceEnabled())
             log.trace("Using custom LargeObjectMetadataCache");
-         largeObjectMetadataCache = cm.getCache(largeObjectMetadataCacheName);
       }
 
       if (log.isDebugEnabled())
          log.debug("Finished creating new LargeObjectMetadataManager instance.");
-      return (LargeObjectMetadataManager) new LargeObjectMetadataManagerImpl(
-               (ConcurrentMap<Object, LargeObjectMetadata<Object>>) largeObjectMetadataCache);
+      return (LargeObjectMetadataManager) new LargeObjectMetadataManagerImpl(cm,
+               largeObjectMetadataCacheName);
    }
 
    private Configuration getDefaultLargeObjectMetadataCacheConfig() {
