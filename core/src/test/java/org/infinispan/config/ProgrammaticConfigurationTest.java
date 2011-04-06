@@ -346,6 +346,12 @@ public class ProgrammaticConfigurationTest extends AbstractInfinispanTest {
       assert c.getLargeObjectSupportConfig().getMaximumChunkSizeInBytes()
                .equals(Long.valueOf(23456789L));
 
+      assert c.getLargeObjectSupportConfig().getLargeObjectMetadataCacheName()
+               .equals(Configuration.LargeObjectSupportConfig.DEFAULT_LARGEOBJECT_METADATA_CACHE);
+      String largeObjectMetadataCacheName = "testLargeOjectMetadataCacheName";
+      c.getLargeObjectSupportConfig().largeObjecMetadataCacheName(largeObjectMetadataCacheName);
+      assert c.getLargeObjectSupportConfig().getLargeObjectMetadataCacheName()
+               .equals(largeObjectMetadataCacheName);
    }
 
 }

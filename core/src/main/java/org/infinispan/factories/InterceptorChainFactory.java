@@ -79,7 +79,7 @@ public class InterceptorChainFactory extends AbstractNamedCacheComponentFactory 
       componentRegistry.registerComponent(interceptorChain, InterceptorChain.class);
       
       // Add large object chunking interceptor in case we are dealing with a large object
-      interceptorChain.appendInterceptor(createInterceptor(LargeObjectChunkingInterceptor.class));
+      interceptorChain.appendInterceptor(createInterceptor(LargeObjectSupportInterceptor.class));
 
       // add marshallable check interceptor for situations where we want to figure out before marshalling
       if (isUsingMarshalledValues(configuration) || configuration.isUseAsyncMarshalling()
