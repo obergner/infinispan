@@ -55,9 +55,6 @@ import java.io.InputStream;
  */
 public class LargeObjectChunkingInterceptor<K> extends CommandInterceptor {
 
-   // TODO: Make this configurable
-   private long maxChunkSizeInBytes = 1000000L;
-
    private Configuration configuration;
 
    private DistributionManager distributionManager;
@@ -68,13 +65,11 @@ public class LargeObjectChunkingInterceptor<K> extends CommandInterceptor {
 
    @Inject
    public void init(Configuration configuration, DistributionManager distributionManager,
-            EmbeddedCacheManager embeddedCacheManager, EntryFactory entryFactory,
-            long maxChunkSizeInBytes) {
+            EmbeddedCacheManager embeddedCacheManager, EntryFactory entryFactory) {
       this.configuration = configuration;
       this.distributionManager = distributionManager;
       this.embeddedCacheManager = embeddedCacheManager;
       this.entryFactory = entryFactory;
-      this.maxChunkSizeInBytes = maxChunkSizeInBytes;
    }
 
    @Override
@@ -88,8 +83,8 @@ public class LargeObjectChunkingInterceptor<K> extends CommandInterceptor {
       ctx.clearLookedUpEntries();
 
       InputStream largeObject = command.getLargeObject();
-      Chunks<K> chunks = new Chunks<K>((K) command.getKey(), largeObject, maxChunkSizeInBytes,
-               distributionManager, configuration, embeddedCacheManager);
+      Chunks<K> chunks = new Chunks<K>((K) command.getKey(), largeObject, distributionManager,
+               configuration, embeddedCacheManager);
       for (Chunk chunk : chunks) {
          final CacheEntry chunkCacheEntry = entryFactory.wrapEntryForWriting(ctx,
                   chunk.getChunkKey(), false, false, false, false, false);

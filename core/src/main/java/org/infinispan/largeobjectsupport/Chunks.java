@@ -99,7 +99,7 @@ public class Chunks<K> implements Iterable<Chunk> {
 
    private long numberOfAlreadyReadBytes = 0L;
 
-   public Chunks(K largeObjectKey, InputStream largeObject, long maxChunkSizeInBytes,
+   public Chunks(K largeObjectKey, InputStream largeObject,
             DistributionManager distributionManager, Configuration configuration,
             EmbeddedCacheManager embeddedCacheManager) {
       if (!largeObject.markSupported())
@@ -107,10 +107,10 @@ public class Chunks<K> implements Iterable<Chunk> {
                   + "support mark(). This, however, is required.");
       this.largeObjectKey = largeObjectKey;
       this.largeObject = largeObject;
-      this.maxChunkSizeInBytes = maxChunkSizeInBytes;
       this.distributionManager = distributionManager;
       this.configuration = configuration;
       this.embeddedCacheManager = embeddedCacheManager;
+      this.maxChunkSizeInBytes = configuration.getMaximumChunkSizeInBytes();
    }
 
    @Override
