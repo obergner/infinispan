@@ -33,7 +33,6 @@ import net.jcip.annotations.NotThreadSafe;
 
 import org.infinispan.affinity.KeyGenerator;
 import org.infinispan.config.Configuration;
-import org.infinispan.distribution.DistributionManager;
 
 /**
  * <p>
@@ -78,29 +77,16 @@ public class Chunks<K> implements Iterable<Chunk> {
 
    private final long maxChunkSizeInBytes;
 
-   /**
-    * The distributionManager: used to obtain a chunkKey for each new chunk.
-    */
-   private final DistributionManager distributionManager;
-
-   /**
-    * The configuration: used to obtain replication factor/num owners.
-    */
-   private final Configuration configuration;
-
    private final ChunkKeyProducer chunkKeyProducer;
 
    private long numberOfAlreadyReadBytes = 0L;
 
-   public Chunks(K largeObjectKey, InputStream largeObject,
-            DistributionManager distributionManager, Configuration configuration) {
+   public Chunks(K largeObjectKey, InputStream largeObject, Configuration configuration) {
       if (!largeObject.markSupported())
          throw new IllegalArgumentException("The supplied LargeObject InputStream does not "
                   + "support mark(). This, however, is required.");
       this.largeObjectKey = largeObjectKey;
       this.largeObject = largeObject;
-      this.distributionManager = distributionManager;
-      this.configuration = configuration;
       this.maxChunkSizeInBytes = configuration.getMaximumChunkSizeInBytes();
       this.chunkKeyProducer = new ChunkKeyProducer(configuration.getChunkKeyPrefix());
    }
@@ -135,18 +121,6 @@ public class Chunks<K> implements Iterable<Chunk> {
          throw new RuntimeException("Failed to read from/reset LargeObject InputStream: "
                   + e.getMessage(), e);
       }
-   }
-
-   private long maximumLargeObjectSizeInBytes() {
-      int numberOfNodeInCluster = distributionManager.getTopologyInfo().getAllTopologyInfo().size();
-      if (numberOfNodeInCluster == 0)
-         throw new IllegalStateException("The number of nodes in the cluster is 0");
-
-      int replicationFactor = configuration.getNumOwners();
-      if (replicationFactor < 1)
-         throw new IllegalStateException("The replication factor is less than 1");
-
-      return (numberOfNodeInCluster * maxChunkSizeInBytes) / replicationFactor;
    }
 
    private final class ChunkKeyProducer {
@@ -194,15 +168,6 @@ public class Chunks<K> implements Iterable<Chunk> {
                numberOfAlreadyReadBytes += n;
                numberOfBytesToReadNext = (maxChunkSizeInBytes - chunkData.size() >= effectiveBufferSize) ? effectiveBufferSize
                         : (int) (maxChunkSizeInBytes - chunkData.size());
-
-               // Check if our LargeObject is bigger than allowed
-               if (chunkData.size() > maximumLargeObjectSizeInBytes())
-                  throw new LargeObjectExceedsSizeLimitException(
-                           "The number of bytes already read [" + numberOfAlreadyReadBytes
-                                    + "] exceeds the size limit ["
-                                    + maximumLargeObjectSizeInBytes() + "] for large objects",
-                           maxChunkSizeInBytes, distributionManager.getTopologyInfo()
-                                    .getAllTopologyInfo().size(), configuration.getNumOwners());
             }
 
             String chunkKey = chunkKeyProducer.nextChunkKey();
