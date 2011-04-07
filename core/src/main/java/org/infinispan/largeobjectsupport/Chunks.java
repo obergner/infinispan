@@ -33,7 +33,6 @@ import net.jcip.annotations.NotThreadSafe;
 
 import org.infinispan.affinity.KeyGenerator;
 import org.infinispan.config.Configuration;
-import org.infinispan.distribution.DistributionManager;
 
 /**
  * <p>
@@ -78,23 +77,16 @@ public class Chunks<K> implements Iterable<Chunk> {
 
    private final long maxChunkSizeInBytes;
 
-   /**
-    * The distributionManager: used to obtain a chunkKey for each new chunk.
-    */
-   private final DistributionManager distributionManager;
-
    private final ChunkKeyProducer chunkKeyProducer;
 
    private long numberOfAlreadyReadBytes = 0L;
 
-   public Chunks(K largeObjectKey, InputStream largeObject,
-            DistributionManager distributionManager, Configuration configuration) {
+   public Chunks(K largeObjectKey, InputStream largeObject, Configuration configuration) {
       if (!largeObject.markSupported())
          throw new IllegalArgumentException("The supplied LargeObject InputStream does not "
                   + "support mark(). This, however, is required.");
       this.largeObjectKey = largeObjectKey;
       this.largeObject = largeObject;
-      this.distributionManager = distributionManager;
       this.maxChunkSizeInBytes = configuration.getMaximumChunkSizeInBytes();
       this.chunkKeyProducer = new ChunkKeyProducer(configuration.getChunkKeyPrefix());
    }
