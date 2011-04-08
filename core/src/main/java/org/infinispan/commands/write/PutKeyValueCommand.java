@@ -22,7 +22,6 @@
  */
 package org.infinispan.commands.write;
 
-import java.io.InputStream;
 import java.util.Collections;
 import java.util.Set;
 
@@ -136,19 +135,20 @@ public class PutKeyValueCommand extends AbstractDataWriteCommand {
     * @return
     */
    private Object handleLargeObjectInvocation(InvocationContext ctx) {
-      if (!(value instanceof InputStream))
+      if (!(value instanceof byte[]))
          throw new IllegalStateException(
                   "This PutKeyValueCommand ["
                            + this
                            + "] is configured as a command handling a large object. However, the supplied value ["
-                           + value + "] is not an InputStream");
+                           + value + "] is not a byte array/chunk");
       MVCCEntry e = (MVCCEntry) ctx.lookupEntry(key);
       e.setValue(value);
       if (e.isRemoved()) {
          e.setRemoved(false);
          e.setValid(true);
       }
-      // Writing a large object does not return the large object formerly stored under the same key
+      // We write a chunk of a large object. We don't need to return
+      // anything.
       return null;
    }
 

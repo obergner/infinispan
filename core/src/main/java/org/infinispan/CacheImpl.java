@@ -727,8 +727,7 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    @Override
    public void writeToKey(K key, InputStream largeObject) {
       assertKeyNotNull(key);
-      // TODO: Change to false as soon as we support transactions
-      InvocationContext ctx = getInvocationContext(true);
+      InvocationContext ctx = getInvocationContext(false);
       PutKeyValueCommand command = commandsFactory.buildPutKeyValueCommand(key, largeObject,
                MILLISECONDS.toMillis(defaultLifespan), MILLISECONDS.toMillis(defaultMaxIdleTime),
                ctx.getFlags());

@@ -336,7 +336,7 @@ public class VersionAwareMarshallerTest extends AbstractInfinispanTest {
    public void testMultiRpcCommand() throws Exception {
       String cacheName = EmbeddedCacheManager.DEFAULT_CACHE_NAME;
       ClusteredGetCommand c2 = new ClusteredGetCommand("key", cacheName, Collections.<Flag>emptySet());
-      PutKeyValueCommand c5 = new PutKeyValueCommand("k", "v", false, null, 0, 0, Collections.<Flag>emptySet());
+      PutKeyValueCommand c5 = new PutKeyValueCommand("k", "v", false, false, null, 0, 0, Collections.<Flag>emptySet());
       MultipleRpcCommand c99 = new MultipleRpcCommand(Arrays.<ReplicableCommand>asList(c2, c5), cacheName);
       marshallAndAssertEquality(c99);
    }

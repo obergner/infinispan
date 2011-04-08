@@ -53,7 +53,7 @@ public class SharedStreamMultiMarshallerTest {
       cm.getCache(); // Start cache so that global marshaller is resolved
       JGroupsAddress address = new JGroupsAddress(new IpAddress(12345));
       PutKeyValueCommand cmd = new PutKeyValueCommand(
-            "k", "v", false, null, 0, 0, Collections.<Flag>emptySet());
+            "k", "v", false, false, null, 0, 0, Collections.<Flag>emptySet());
       try {
          // Write
          StreamingMarshaller globalMarshal = extractGlobalMarshaller(cm);
@@ -115,7 +115,7 @@ public class SharedStreamMultiMarshallerTest {
       cm.getCache(); // Start cache so that global marshaller is resolved
       JGroupsAddress address = new JGroupsAddress(new IpAddress(12345));
       PutKeyValueCommand cmd = new PutKeyValueCommand(
-            "k", "v", false, null, 0, 0, Collections.<Flag>emptySet());
+            "k", "v", false, false, null, 0, 0, Collections.<Flag>emptySet());
       try {
          // Write
          StreamingMarshaller globalMarshal = extractGlobalMarshaller(cm);

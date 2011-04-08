@@ -31,6 +31,7 @@ import org.infinispan.config.Configuration.EvictionType;
 import org.infinispan.config.Configuration.ExpirationType;
 import org.infinispan.config.Configuration.HashType;
 import org.infinispan.config.Configuration.L1Type;
+import org.infinispan.config.Configuration.LargeObjectSupportType;
 import org.infinispan.config.Configuration.LockingType;
 import org.infinispan.config.Configuration.QueryConfigurationBean;
 import org.infinispan.config.Configuration.RecoveryType;
@@ -303,6 +304,13 @@ public class DelegatingConfigurationVisitor implements ConfigurationBeanVisitor 
    public void visitStoreAsBinaryType(StoreAsBinary bean) {
       for (ConfigurationBeanVisitor delegate : delegates) {
          delegate.visitStoreAsBinaryType(bean);
+      }
+   }
+
+   @Override
+   public void visitLargeObjectSupportType(LargeObjectSupportType bean) {
+      for (ConfigurationBeanVisitor delegate : delegates) {
+         delegate.visitLargeObjectSupportType(bean);
       }
    }
 }
