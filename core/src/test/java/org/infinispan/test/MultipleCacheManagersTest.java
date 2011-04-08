@@ -189,7 +189,7 @@ public abstract class MultipleCacheManagersTest extends AbstractCacheTest {
     */
    protected EmbeddedCacheManager addClusterEnabledCacheManager(Configuration.CacheMode mode, boolean transactional) {
       Configuration configuration = getDefaultClusteredConfig(mode, transactional);
-      configuration.setCacheMode(mode);
+      configuration.fluent().clustering().mode(mode);
       return addClusterEnabledCacheManager(configuration);
    }
 

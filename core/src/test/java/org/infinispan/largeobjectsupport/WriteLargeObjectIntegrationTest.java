@@ -1,13 +1,13 @@
-package org.infinispan;
+package org.infinispan.largeobjectsupport;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 
+import org.infinispan.Cache;
+import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.config.Configuration;
 import org.infinispan.config.FluentConfiguration;
-import org.infinispan.config.GlobalConfiguration;
 import org.infinispan.largeobjectsupport.LargeObjectMetadata;
-import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.test.MultipleCacheManagersTest;
 import org.testng.annotations.Test;
 
@@ -26,28 +26,15 @@ public class WriteLargeObjectIntegrationTest extends MultipleCacheManagersTest {
 
    @Override
    protected void createCacheManagers() throws Throwable {
-      Configuration config1 = getDefaultClusteredConfig(Configuration.CacheMode.DIST_SYNC);
-      config1.setGlobalConfiguration(new GlobalConfiguration());
-
-      config1.fluent().locking().useLockStriping(false);
-
-      EmbeddedCacheManager cacheManager1 = addClusterEnabledCacheManager(config1, false);
-      cacheManager1.getGlobalConfiguration().fluent().transport().machineId("machine1")
-               .clusterName("testCluster");
-
-      Configuration config2 = config1.clone();
-
-      EmbeddedCacheManager cacheManager2 = addClusterEnabledCacheManager(config2, false);
-      config2.getGlobalConfiguration().fluent().transport().machineId("machine2")
-               .clusterName("testCluster");
-
-      cacheManager1.defineConfiguration(TEST_CACHE_NAME, config1);
-      cacheManager2.defineConfiguration(TEST_CACHE_NAME, config2);
+      Configuration largeObjectCacheConfig = getDefaultClusteredConfig(Configuration.CacheMode.REPL_SYNC);
+      largeObjectCacheConfig.fluent().locking().useLockStriping(false).clustering()
+               .stateRetrieval().timeout(1000L);
+      createClusteredCaches(2, TEST_CACHE_NAME, largeObjectCacheConfig);
    }
 
    @Test
    public void testThatWriteToKeyCorrectlyWritesLargeObjectMetadata() {
-      Object largeObjectKey = new Object();
+      String largeObjectKey = "testThatWriteToKeyCorrectlyWritesLargeObjectMetadata";
       byte[] bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7 };
       InputStream largeObject = new ByteArrayInputStream(bytes);
 
@@ -71,7 +58,7 @@ public class WriteLargeObjectIntegrationTest extends MultipleCacheManagersTest {
 
    @Test
    public void testThatWriteToKeyCorrectlyStoresChunks() {
-      Object largeObjectKey = new Object();
+      String largeObjectKey = "testThatWriteToKeyCorrectlyStoresChunks";
       byte[] bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7 };
       InputStream largeObject = new ByteArrayInputStream(bytes);
 
@@ -85,6 +72,29 @@ public class WriteLargeObjectIntegrationTest extends MultipleCacheManagersTest {
 
       assert chunk != null : "writeToKey(" + largeObjectKey + ", " + largeObject
                + ") did not store chunk";
+   }
+
+   @Test
+   public void testThatWriteToKeyCorrectlyReplicatesChunksInSyncReplicationMode() {
+      String largeObjectKey = "testThatWriteToKeyCorrectlyReplicatesChunksInSyncReplicationMode";
+      byte[] bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7 };
+      InputStream largeObject = new ByteArrayInputStream(bytes);
+
+      Cache<Object, Object> cache1 = cache(0, TEST_CACHE_NAME);
+      Cache<Object, Object> cache2 = cache(1, TEST_CACHE_NAME);
+
+      replListener(cache2).expect(PutKeyValueCommand.class);
+      cache1.getAdvancedCache().writeToKey(largeObjectKey, largeObject);
+      replListener(cache2).waitForRpc();
+
+      LargeObjectMetadata<Object> writtenMetadata = defaultLargeObjectMetadataCache().get(
+               largeObjectKey);
+      String chunkKey = writtenMetadata.getChunkKeys()[0];
+
+      byte[] chunk = (byte[]) cache2.get(chunkKey);
+
+      assert chunk != null : "writeToKey(" + largeObjectKey + ", " + largeObject
+               + ") did not replicate chunks";
    }
 
    private Cache<Object, LargeObjectMetadata<Object>> defaultLargeObjectMetadataCache() {
