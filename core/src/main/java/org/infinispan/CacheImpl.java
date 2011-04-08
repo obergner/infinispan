@@ -584,7 +584,6 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
          return (NotifyingFuture<X>) retval;
       } else {
          return new AbstractInProcessNotifyingFuture<X>() {
-            @SuppressWarnings("unchecked")
             public X get() throws InterruptedException, ExecutionException {
                return (X) retval;
             }
