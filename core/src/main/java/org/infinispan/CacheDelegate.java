@@ -83,7 +83,6 @@ import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -567,7 +566,6 @@ public class CacheDelegate<K, V> extends CacheSupport<K, V> implements AdvancedC
          return (NotifyingFuture<X>) retval;
       } else {
          return new AbstractInProcessNotifyingFuture<X>() {
-            @SuppressWarnings("unchecked")
             public X get() throws InterruptedException, ExecutionException {
                return (X) retval;
             }
@@ -690,8 +688,7 @@ public class CacheDelegate<K, V> extends CacheSupport<K, V> implements AdvancedC
    }
 
    private boolean isSkipLoader(EnumSet<Flag> flags) {
-      boolean hasCacheLoaderConfig = config.getCacheLoaderManagerConfig()
-               .getFirstCacheLoaderConfig() != null;
+      boolean hasCacheLoaderConfig = !config.getCacheLoaders().isEmpty();
       return !hasCacheLoaderConfig
                || (hasCacheLoaderConfig && flags != null && (flags.contains(Flag.SKIP_CACHE_LOAD) || flags
                         .contains(Flag.SKIP_CACHE_STORE)));
@@ -704,8 +701,7 @@ public class CacheDelegate<K, V> extends CacheSupport<K, V> implements AdvancedC
    @Override
    public void writeToKey(K key, InputStream largeObject) {
       assertKeyNotNull(key);
-      // TODO: Change to false as soon as we support transactions
-      InvocationContext ctx = getInvocationContext(true);
+      InvocationContext ctx = getInvocationContext(false);
       PutKeyValueCommand command = commandsFactory.buildPutKeyValueCommand(key, largeObject,
                MILLISECONDS.toMillis(defaultLifespan), MILLISECONDS.toMillis(defaultMaxIdleTime),
                ctx.getFlags());

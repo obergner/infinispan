@@ -25,8 +25,6 @@ import java.io.InputStream;
 
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.config.Configuration;
-import org.infinispan.container.EntryFactory;
-import org.infinispan.container.entries.CacheEntry;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.factories.annotations.Inject;
 import org.infinispan.interceptors.base.CommandInterceptor;
@@ -65,15 +63,12 @@ public class LargeObjectSupportInterceptor<K> extends CommandInterceptor {
 
    private Configuration configuration;
 
-   private EntryFactory entryFactory;
-
    private LargeObjectMetadataManager largeObjectMetadataManager;
 
    @Inject
-   public void init(Configuration configuration, EntryFactory entryFactory,
+   public void init(Configuration configuration,
             LargeObjectMetadataManager largeObjectMetadataManager) {
       this.configuration = configuration;
-      this.entryFactory = entryFactory;
       this.largeObjectMetadataManager = largeObjectMetadataManager;
    }
 
@@ -85,14 +80,9 @@ public class LargeObjectSupportInterceptor<K> extends CommandInterceptor {
 
       checkCommandValid(ctx, command);
 
-      CacheEntry rememberedEntry = ctx.lookupEntry(command.getKey());
-      ctx.clearLookedUpEntries();
-
       LargeObjectMetadata<K> largeObjectMetadata = chunkAndStoreEachChunk(ctx, command);
       largeObjectMetadataManager.storeLargeObjectMetadata(largeObjectMetadata);
 
-      // Restore former CacheEntry
-      ctx.putLookedUpEntry(command.getKey(), rememberedEntry);
       // We don't need a return value
       return null;
    }
@@ -117,14 +107,21 @@ public class LargeObjectSupportInterceptor<K> extends CommandInterceptor {
       InputStream largeObject = InputStream.class.cast(command.getValue());
       Chunks<K> chunks = new Chunks<K>((K) command.getKey(), largeObject, configuration);
       for (Chunk chunk : chunks) {
-         final CacheEntry chunkCacheEntry = entryFactory.wrapEntryForWriting(ctx,
-                  chunk.getChunkKey(), true, false, false, false, false);
-         chunkCacheEntry.setValue(chunk.getData());
-         ctx.putLookedUpEntry(chunk.getChunkKey(), chunkCacheEntry);
+         /*
+          * We need to (1) remember the key-largeObject-pair currently stored in command, (2)
+          * replace that pair with the chunkKey-chunk-pair to be stored and (3) restore the former
+          * key-LargeObject-pair in command once the chunk has been finished.
+          */
+         // FIXME: There has to be a better solution
+         Object rememberedLargeObjectKey = command.getKey();
+         Object rememberedLargeObject = command.getValue();
+         command.setKey(chunk.getChunkKey());
+         command.setValue(chunk.getData());
 
          invokeNextInterceptor(ctx, command);
 
-         ctx.clearLookedUpEntries(); // We would otherwise risk getting OOM
+         command.setKey(rememberedLargeObjectKey);
+         command.setValue(rememberedLargeObject);
       }
 
       return chunks.largeObjectMetadata();

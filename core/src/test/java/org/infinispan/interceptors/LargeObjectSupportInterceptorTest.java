@@ -18,10 +18,7 @@ import org.infinispan.Cache;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.config.Configuration;
 import org.infinispan.config.FluentConfiguration;
-import org.infinispan.container.EntryFactory;
 import org.infinispan.container.entries.CacheEntry;
-import org.infinispan.container.entries.InternalCacheEntry;
-import org.infinispan.container.entries.MVCCEntry;
 import org.infinispan.container.entries.ReadCommittedEntry;
 import org.infinispan.context.Flag;
 import org.infinispan.context.InvocationContext;
@@ -36,7 +33,6 @@ import org.infinispan.manager.CacheContainer;
 import org.infinispan.manager.EmbeddedCacheManager;
 import org.infinispan.util.BidirectionalMap;
 import org.infinispan.util.concurrent.NotifyingFuture;
-import org.infinispan.util.concurrent.TimeoutException;
 import org.testng.annotations.Test;
 
 /**
@@ -52,7 +48,7 @@ public class LargeObjectSupportInterceptorTest {
    public void testThatLargeObjectChunkingInterceptorRejectsTransactionalInvocationContext()
             throws Throwable {
       LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
-      objectUnderTest.init(newConfigurationWithMaxChunkSize(3L), newEntryFactory(),
+      objectUnderTest.init(newConfigurationWithMaxChunkSize(3L),
                newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
 
       LocalTxInvocationContext txCtx = new LocalTxInvocationContext() {
@@ -77,7 +73,7 @@ public class LargeObjectSupportInterceptorTest {
    @Test(expectedExceptions = IllegalStateException.class)
    public void testThatLargeObjectChunkingInterceptorRejectsNonInputStreamValue() throws Throwable {
       LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
-      objectUnderTest.init(newConfigurationWithMaxChunkSize(3L), newEntryFactory(),
+      objectUnderTest.init(newConfigurationWithMaxChunkSize(3L),
                newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
 
       LocalTxInvocationContext txCtx = new LocalTxInvocationContext() {
@@ -102,7 +98,7 @@ public class LargeObjectSupportInterceptorTest {
    public void testThatLargeObjectChunkingInterceptorCorrectlyCallsInterceptorPipelineForEachChunk()
             throws Throwable {
       LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
-      objectUnderTest.init(newConfigurationWithMaxChunkSize(3L), newEntryFactory(),
+      objectUnderTest.init(newConfigurationWithMaxChunkSize(3L),
                newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
 
       final List<byte[]> receivedChunkData = new ArrayList<byte[]>();
@@ -110,13 +106,11 @@ public class LargeObjectSupportInterceptorTest {
          @Override
          public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command)
                   throws Throwable {
-            BidirectionalMap<Object, CacheEntry> entriesStoredInCtx = ctx.getLookedUpEntries();
-            assert entriesStoredInCtx.size() > 0 : "LargeObjectSupportInterceptor did not store "
-                     + "any entries in InvocationContext";
-            assert entriesStoredInCtx.size() == 1 : "LargeObjectSupportInterceptor did stored more "
-                     + "than one entry in InvocationContext";
-            CacheEntry cacheEntry = entriesStoredInCtx.values().iterator().next();
-            receivedChunkData.add((byte[]) cacheEntry.getValue());
+            assert command.getValue() != null : "LargeObjectSupportInterceptor did not store "
+                     + "any value in PutKeyValueCommand";
+            assert command.getValue() instanceof byte[] : "LargeObjectSupportInterceptor did not store "
+                     + "value of type byte[] in command";
+            receivedChunkData.add(byte[].class.cast(command.getValue()));
 
             return null;
          }
@@ -144,7 +138,7 @@ public class LargeObjectSupportInterceptorTest {
    public void testThatLargeObjectChunkingInterceptorSkipsChunkingIfPutLargeObjectIsFalse()
             throws Throwable {
       LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
-      objectUnderTest.init(newConfigurationWithMaxChunkSize(3L), newEntryFactory(),
+      objectUnderTest.init(newConfigurationWithMaxChunkSize(3L),
                newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
 
       final List<Object> receivedValues = new ArrayList<Object>();
@@ -186,8 +180,7 @@ public class LargeObjectSupportInterceptorTest {
             throws Throwable {
       LargeObjectSupportInterceptor<Object> objectUnderTest = new LargeObjectSupportInterceptor<Object>();
       LargeObjectMetadataManager largeObjectMetadataManager = newLargeObjectMetadataManagerWithLargeObjectMetadataStored(null);
-      objectUnderTest.init(newConfigurationWithMaxChunkSize(3L), newEntryFactory(),
-               largeObjectMetadataManager);
+      objectUnderTest.init(newConfigurationWithMaxChunkSize(3L), largeObjectMetadataManager);
 
       CommandInterceptor noopCommandInterceptor = new CommandInterceptor() {
          @Override
@@ -234,44 +227,6 @@ public class LargeObjectSupportInterceptorTest {
       return new LargeObjectMetadataManagerImpl(
                newCacheContainerWithLargeObjectMetadataCache(keyToLargeObjectMetadata),
                FluentConfiguration.LargeObjectSupportConfig.DEFAULT_LARGEOBJECT_METADATA_CACHE);
-   }
-
-   private EntryFactory newEntryFactory() {
-      return new MockEntryFactory();
-   }
-
-   private static class MockEntryFactory implements EntryFactory {
-
-      @Override
-      public void releaseLock(Object key) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI releaseLock");
-      }
-
-      @Override
-      public boolean acquireLock(InvocationContext ctx, Object key) throws InterruptedException,
-               TimeoutException {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI acquireLock");
-      }
-
-      @Override
-      public MVCCEntry wrapEntryForWriting(InvocationContext ctx, Object key,
-               boolean createIfAbsent, boolean forceLockIfAbsent, boolean alreadyLocked,
-               boolean forRemoval, boolean undeleteIfNeeded) throws InterruptedException {
-         return new ReadCommittedEntry(key, null, 0L);
-      }
-
-      @Override
-      public MVCCEntry wrapEntryForWriting(InvocationContext ctx, InternalCacheEntry entry,
-               boolean createIfAbsent, boolean forceLockIfAbsent, boolean alreadyLocked,
-               boolean forRemoval, boolean undeleteIfNeeded) throws InterruptedException {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI wrapEntryForWriting");
-      }
-
-      @Override
-      public CacheEntry wrapEntryForReading(InvocationContext ctx, Object key)
-               throws InterruptedException {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI wrapEntryForReading");
-      }
    }
 
    private CacheContainer newCacheContainerWithLargeObjectMetadataCache(
