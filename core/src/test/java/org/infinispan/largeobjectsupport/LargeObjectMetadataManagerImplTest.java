@@ -30,7 +30,7 @@ public class LargeObjectMetadataManagerImplTest {
    public void testThatAlreadyUsedByLargeObjectRecognizesThatAKeyIsAlreadyUsed() {
       Object largeObjectKey = new Object();
       LargeObjectMetadata<Object> largeObjectMetadata = new LargeObjectMetadata<Object>(
-               largeObjectKey, 3L, new String[0]);
+               largeObjectKey, 1000L, 3L, new String[0]);
       ConcurrentMap<Object, LargeObjectMetadata<Object>> keyToLargeObjectMetadata = new ConcurrentHashMap<Object, LargeObjectMetadata<Object>>(
                1);
       keyToLargeObjectMetadata.put(largeObjectKey, largeObjectMetadata);
@@ -47,7 +47,7 @@ public class LargeObjectMetadataManagerImplTest {
    public void testThatCorrespondingLargeObjectMetadataReturnsCorrectMetadata() {
       Object largeObjectKey = new Object();
       LargeObjectMetadata<Object> largeObjectMetadata = new LargeObjectMetadata<Object>(
-               largeObjectKey, 3L, new String[0]);
+               largeObjectKey, 1000L, 3L, new String[0]);
       ConcurrentMap<Object, LargeObjectMetadata<Object>> keyToLargeObjectMetadata = new ConcurrentHashMap<Object, LargeObjectMetadata<Object>>(
                1);
       keyToLargeObjectMetadata.put(largeObjectKey, largeObjectMetadata);
@@ -64,7 +64,7 @@ public class LargeObjectMetadataManagerImplTest {
    public void testThatStoreLargeObjectMetadataCorrectlyStoresMetadata() {
       Object largeObjectKey = new Object();
       LargeObjectMetadata<Object> largeObjectMetadata = new LargeObjectMetadata<Object>(
-               largeObjectKey, 3L, new String[0]);
+               largeObjectKey, 1000L, 3L, new String[0]);
       ConcurrentMap<Object, LargeObjectMetadata<Object>> keyToLargeObjectMetadata = new ConcurrentHashMap<Object, LargeObjectMetadata<Object>>(
                1);
       keyToLargeObjectMetadata.put(largeObjectKey, largeObjectMetadata);

@@ -218,7 +218,7 @@ public class LargeObjectSupportInterceptorTest {
    private LargeObjectMetadataManager newLargeObjectMetadataManagerWithLargeObjectMetadataStored(
             Object largeObjectKey) {
       LargeObjectMetadata<Object> largeObjectMetadata = new LargeObjectMetadata<Object>(
-               largeObjectKey, 3L, new String[0]);
+               largeObjectKey, 1000L, 3L, new String[0]);
       ConcurrentMap<Object, LargeObjectMetadata<Object>> keyToLargeObjectMetadata = new ConcurrentHashMap<Object, LargeObjectMetadata<Object>>(
                1);
       if (largeObjectKey != null)

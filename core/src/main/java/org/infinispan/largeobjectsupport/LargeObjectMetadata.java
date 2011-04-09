@@ -44,19 +44,16 @@ public class LargeObjectMetadata<K> implements Serializable, Iterable<String> {
 
    private final K largeObjectKey;
 
+   private final long maximumChunkSizeInBytes;
+
    private final long totalSizeInBytes;
 
    private final String[] chunkKeys;
 
-   /**
-    * Create a new LargeObjectMetadata.
-    * 
-    * @param largeObjectKey
-    * @param totalSizeInBytes
-    * @param chunkKeys
-    */
-   public LargeObjectMetadata(K largeObjectKey, long totalSizeInBytes, String[] chunkKeys) {
+   public LargeObjectMetadata(K largeObjectKey, long maximumChunkSizeInBytes,
+            long totalSizeInBytes, String[] chunkKeys) {
       this.largeObjectKey = largeObjectKey;
+      this.maximumChunkSizeInBytes = maximumChunkSizeInBytes;
       this.totalSizeInBytes = totalSizeInBytes;
       this.chunkKeys = chunkKeys;
    }
@@ -73,6 +70,15 @@ public class LargeObjectMetadata<K> implements Serializable, Iterable<String> {
     */
    public final K getLargeObjectKey() {
       return largeObjectKey;
+   }
+
+   /**
+    * Get the maximumChunkSizeInBytes.
+    * 
+    * @return the maximumChunkSizeInBytes.
+    */
+   public long getMaximumChunkSizeInBytes() {
+      return maximumChunkSizeInBytes;
    }
 
    /**
@@ -97,9 +103,7 @@ public class LargeObjectMetadata<K> implements Serializable, Iterable<String> {
    public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + Arrays.hashCode(chunkKeys);
       result = prime * result + ((largeObjectKey == null) ? 0 : largeObjectKey.hashCode());
-      result = prime * result + (int) (totalSizeInBytes ^ (totalSizeInBytes >>> 32));
       return result;
    }
 
@@ -112,21 +116,18 @@ public class LargeObjectMetadata<K> implements Serializable, Iterable<String> {
       if (getClass() != obj.getClass())
          return false;
       LargeObjectMetadata other = (LargeObjectMetadata) obj;
-      if (!Arrays.equals(chunkKeys, other.chunkKeys))
-         return false;
       if (largeObjectKey == null) {
          if (other.largeObjectKey != null)
             return false;
       } else if (!largeObjectKey.equals(other.largeObjectKey))
-         return false;
-      if (totalSizeInBytes != other.totalSizeInBytes)
          return false;
       return true;
    }
 
    @Override
    public String toString() {
-      return "LargeObjectMetadata [largeObjectKey=" + largeObjectKey + ", totalSizeInBytes="
-               + totalSizeInBytes + ", chunkKeys=" + Arrays.toString(chunkKeys) + "]";
+      return "LargeObjectMetadata [largeObjectKey=" + largeObjectKey + ", maximumChunkSizeInBytes="
+               + maximumChunkSizeInBytes + ", totalSizeInBytes=" + totalSizeInBytes
+               + ", chunkKeys=" + Arrays.toString(chunkKeys) + "]";
    }
 }
