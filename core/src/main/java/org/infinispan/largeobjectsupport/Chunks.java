@@ -107,8 +107,8 @@ public class Chunks<K> implements Iterable<Chunk> {
                            + "not yet read all bytes from its LargeObject.");
       List<String> allChunkKeys = chunkKeyProducer.chunkKeys();
 
-      return new LargeObjectMetadata<K>(largeObjectKey, numberOfAlreadyReadBytes,
-               allChunkKeys.toArray(new String[allChunkKeys.size()]));
+      return new LargeObjectMetadata<K>(largeObjectKey, maxChunkSizeInBytes,
+               numberOfAlreadyReadBytes, allChunkKeys.toArray(new String[allChunkKeys.size()]));
    }
 
    private boolean allBytesRead() {
