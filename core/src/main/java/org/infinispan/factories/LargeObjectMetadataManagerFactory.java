@@ -78,7 +78,7 @@ public class LargeObjectMetadataManagerFactory extends AbstractNamedCacheCompone
 
    private Configuration getDefaultLargeObjectMetadataCacheConfig() {
       Configuration config = new Configuration();
-      config.fluent().clustering().mode(Configuration.CacheMode.LOCAL);
+      config.fluent().clustering().mode(Configuration.CacheMode.REPL_SYNC);
       return config;
    }
 }

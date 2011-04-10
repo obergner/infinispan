@@ -55,6 +55,9 @@ import org.infinispan.interceptors.base.CommandInterceptor;
 import org.infinispan.jmx.annotations.MBean;
 import org.infinispan.jmx.annotations.ManagedAttribute;
 import org.infinispan.jmx.annotations.ManagedOperation;
+import org.infinispan.largeobjectsupport.LargeObjectInputStream;
+import org.infinispan.largeobjectsupport.LargeObjectMetadata;
+import org.infinispan.largeobjectsupport.LargeObjectMetadataManager;
 import org.infinispan.lifecycle.ComponentStatus;
 import org.infinispan.manager.CacheContainer;
 import org.infinispan.manager.EmbeddedCacheManager;
@@ -138,6 +141,7 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    private LockManager lockManager;
    private DistributionManager distributionManager;
    private ExecutorService asyncExecutor;
+   private LargeObjectMetadataManager largeObjectMetadataManager;
    private TransactionTable txTable;
    private RecoveryManager recoveryManager;
    private TransactionCoordinator txCoordinator;
@@ -170,7 +174,7 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
                                   EmbeddedCacheManager cacheManager, StateTransferManager stateTransferManager,
                                   @ComponentName(ASYNC_TRANSPORT_EXECUTOR) ExecutorService asyncExecutor,
                                   TransactionTable txTable, RecoveryManager recoveryManager, TransactionCoordinator txCoordinator,
-                                  LockManager lockManager) {
+                                  LockManager lockManager, LargeObjectMetadataManager largeObjectMetadataManager) {
       this.commandsFactory = commandsFactory;
       this.invoker = interceptorChain;
       this.config = configuration;
@@ -188,6 +192,7 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
       this.icc = icc;
       this.distributionManager = distributionManager;
       this.asyncExecutor = asyncExecutor;
+      this.largeObjectMetadataManager = largeObjectMetadataManager;
       this.txTable = txTable;
       this.recoveryManager = recoveryManager;
       this.txCoordinator = txCoordinator;
@@ -734,6 +739,14 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
       // Mark this command as pertaining to a large object
       command.setPutLargeObject(true);
       invoker.invoke(ctx, command);
+   }
+   
+   @Override
+   public InputStream readFromKey(K key) {
+      assertKeyNotNull(key);
+      LargeObjectMetadata<K> largeObjectMetadata = largeObjectMetadataManager.correspondingLargeObjectMetadata(key);
+      if (largeObjectMetadata == null) return null;
+      return new LargeObjectInputStream(largeObjectMetadata, this);
    }
 
    public void compact() {
