@@ -44,7 +44,6 @@ import org.infinispan.container.entries.InternalCacheEntry;
 import org.infinispan.context.Flag;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.context.InvocationContextContainer;
-import org.infinispan.context.PreInvocationContext;
 import org.infinispan.distribution.DistributionManager;
 import org.infinispan.eviction.EvictionManager;
 import org.infinispan.factories.ComponentRegistry;
@@ -91,7 +90,6 @@ import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAResource;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -740,6 +738,12 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
       // Mark this command as pertaining to a large object
       command.setPutLargeObject(true);
       invoker.invoke(ctx, command);
+   }
+   
+   @Override
+   public InputStream readFromKey(K key) {
+      assertKeyNotNull(key);
+      return null;
    }
 
    public void compact() {
