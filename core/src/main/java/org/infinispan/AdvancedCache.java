@@ -63,6 +63,21 @@ public interface AdvancedCache<K, V> extends Cache<K, V> {
     * @since 5.1
     */
    void writeToKey(K key, InputStream largeObject);
+   
+   /**
+    * <em>Large Object Support</em>: Take the key {@code key} and return an
+    * {@link java.io.InputStream <code>InputStream</code>} the caller may use to read the
+    * <em>Large Object</em> identified by {@code key}. A <em>Large Object</em> is defined as a value
+    * whose size may potentially exceed the heap size of any single JVM participating in an
+    * INFINISPAN cluster. Therefore, it cannot be stored in its entirety on a single node and needs
+    * to be split into chunks to be distributed across multiple nodes.
+    * 
+    * @param key
+    *           The {@code key} identifying the <em>Large Object</em> the caller wants to read
+    * @return An {@link java.io.InputStream <code>InputStream</code>} the caller may read the
+    *         request <em>Large Object</em> from
+    */
+   InputStream readFromKey(K key);
 
    /**
     * A builder-style method that adds flags to any API call.  For example, consider the following code snippet:

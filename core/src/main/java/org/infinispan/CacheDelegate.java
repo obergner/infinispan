@@ -55,6 +55,9 @@ import org.infinispan.interceptors.base.CommandInterceptor;
 import org.infinispan.jmx.annotations.MBean;
 import org.infinispan.jmx.annotations.ManagedAttribute;
 import org.infinispan.jmx.annotations.ManagedOperation;
+import org.infinispan.largeobjectsupport.LargeObjectInputStream;
+import org.infinispan.largeobjectsupport.LargeObjectMetadata;
+import org.infinispan.largeobjectsupport.LargeObjectMetadataManager;
 import org.infinispan.lifecycle.ComponentStatus;
 import org.infinispan.manager.CacheContainer;
 import org.infinispan.manager.EmbeddedCacheManager;
@@ -131,6 +134,7 @@ public class CacheDelegate<K, V> extends CacheSupport<K, V> implements AdvancedC
    private DistributionManager distributionManager;
    private final ThreadLocal<PreInvocationContext> flagHolder = new ThreadLocal<PreInvocationContext>();
    private ExecutorService asyncExecutor;
+   private LargeObjectMetadataManager largeObjectMetadataManager;
 
    public CacheDelegate(String name) {
       this.name = name;
@@ -154,7 +158,8 @@ public class CacheDelegate<K, V> extends CacheSupport<K, V> implements AdvancedC
             DistributionManager distributionManager,
             EmbeddedCacheManager cacheManager,
             StateTransferManager stateTransferManager,
-            @ComponentName(KnownComponentNames.ASYNC_TRANSPORT_EXECUTOR) ExecutorService asyncExecutor) {
+            @ComponentName(KnownComponentNames.ASYNC_TRANSPORT_EXECUTOR) ExecutorService asyncExecutor,
+            LargeObjectMetadataManager largeObjectMetadataManager) {
       this.commandsFactory = commandsFactory;
       this.invoker = interceptorChain;
       this.config = configuration;
@@ -172,6 +177,7 @@ public class CacheDelegate<K, V> extends CacheSupport<K, V> implements AdvancedC
       this.icc = icc;
       this.distributionManager = distributionManager;
       this.asyncExecutor = asyncExecutor;
+      this.largeObjectMetadataManager = largeObjectMetadataManager;
    }
 
    private void assertKeyNotNull(Object key) {
@@ -702,6 +708,14 @@ public class CacheDelegate<K, V> extends CacheSupport<K, V> implements AdvancedC
       // Mark this command as pertaining to a large object
       command.setPutLargeObject(true);
       invoker.invoke(ctx, command);
+   }
+   
+   @Override
+   public InputStream readFromKey(K key) {
+      assertKeyNotNull(key);
+      LargeObjectMetadata<K> largeObjectMetadata = largeObjectMetadataManager.correspondingLargeObjectMetadata(key);
+      if (largeObjectMetadata == null) return null;
+      return new LargeObjectInputStream(largeObjectMetadata, this);
    }
 
    public void compact() {
