@@ -51,7 +51,7 @@ import net.jcip.annotations.NotThreadSafe;
 @NotThreadSafe
 public class LargeObjectInputStream extends InputStream {
 
-   private final LargeObjectMetadata<?> largeObjectMetadata;
+   private final LargeObjectMetadata largeObjectMetadata;
 
    private final Map<?, ?> largeObjectCache;
 
@@ -61,8 +61,7 @@ public class LargeObjectInputStream extends InputStream {
 
    private int currentChunkKeyIndex = 0;
 
-   public LargeObjectInputStream(LargeObjectMetadata<?> largeObjectMetadata,
-            Map<?, ?> largeObjectCache) {
+   public LargeObjectInputStream(LargeObjectMetadata largeObjectMetadata, Map<?, ?> largeObjectCache) {
       // FIXME: Support currentChunk sizes greater than Integer.MAX_VALUE
       if (largeObjectMetadata.getMaximumChunkSizeInBytes() > Integer.MAX_VALUE)
          throw new IllegalArgumentException("Currently, maximum currentChunk size is limited to "

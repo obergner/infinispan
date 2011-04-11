@@ -52,22 +52,20 @@ public interface LargeObjectMetadataManager {
     * {@code LargeObjectMetadat} in case a large object is currently stored under the supplied
     * {@code largeObjectKey}. Otherwise it will return {@code null}.
     * 
-    * @param <K>
     * @param largeObjectKey
     *           A large object's key
     * @return The {@link LargeObjectMetadata <code>LargeObjectMetadata</code>} corresponding to the
     *         supplied <code>largeObjectKey</code> or {@code null}
     */
-   <K> LargeObjectMetadata<K> correspondingLargeObjectMetadata(K largeObjectKey);
+   <K> LargeObjectMetadata correspondingLargeObjectMetadata(K largeObjectKey);
 
    /**
     * Store the supplied {@link LargeObjectMetadata <code>largeObjectMetadata</code>} for later
     * retrieval. After calling this method, {@code LargeObjectMetadataManager} will assume that a
     * large object is stored under the key contained in {@code largeObjectMetadat}.
     * 
-    * @param <K>
     * @param largeObjectMetadata
     *           {@link LargeObjectMetadata <code>LargeObjectMetadata</code>} to store
     */
-   <K> void storeLargeObjectMetadata(LargeObjectMetadata<K> largeObjectMetadata);
+   void storeLargeObjectMetadata(LargeObjectMetadata largeObjectMetadata);
 }

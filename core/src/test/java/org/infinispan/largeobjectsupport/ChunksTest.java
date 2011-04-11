@@ -32,13 +32,13 @@ public class ChunksTest {
             return false;
          }
       };
-      new Chunks<Object>(new Object(), inputStreamNotSupportingMark, null);
+      new Chunks(new Object(), inputStreamNotSupportingMark, null);
    }
 
    @Test(expectedExceptions = IllegalStateException.class)
    public void testThatChunksInstanceCannotBeIteratedOverMoreThanOnce() {
       InputStream largeObject = new ByteArrayInputStream("This is a large object".getBytes());
-      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
+      Chunks objectUnderTest = new Chunks(new Object(), largeObject,
 
       newConfigurationWithMaxChunkSize(2L));
 
@@ -55,7 +55,7 @@ public class ChunksTest {
       byte[] bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7 };
       long maxChunkSizeInBytes = 3L;
       InputStream largeObject = new ByteArrayInputStream(bytes);
-      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
+      Chunks objectUnderTest = new Chunks(new Object(), largeObject,
                newConfigurationWithMaxChunkSize(maxChunkSizeInBytes));
       List<Chunk> allChunks = new ArrayList<Chunk>();
 
@@ -71,7 +71,7 @@ public class ChunksTest {
    @Test(expectedExceptions = IllegalStateException.class)
    public void testThatLargeObjectMetadataCannotBeCalledIfIterationNotYetFinished() {
       InputStream largeObject = new ByteArrayInputStream("This is a large object".getBytes());
-      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
+      Chunks objectUnderTest = new Chunks(new Object(), largeObject,
                newConfigurationWithMaxChunkSize(2L));
       objectUnderTest.iterator().next(); // Should hold more than one chunk
 
@@ -84,13 +84,13 @@ public class ChunksTest {
       long maxChunkSizeInBytes = 3L;
       InputStream largeObject = new ByteArrayInputStream(bytes);
       Object largeObjectKey = new Object();
-      Chunks<Object> objectUnderTest = new Chunks<Object>(largeObjectKey, largeObject,
+      Chunks objectUnderTest = new Chunks(largeObjectKey, largeObject,
                newConfigurationWithMaxChunkSize(maxChunkSizeInBytes));
       for (Chunk chunk : objectUnderTest) {
          chunk.getChunkKey(); // Whatever
       }
 
-      LargeObjectMetadata<Object> largeObjectMetadata = objectUnderTest.largeObjectMetadata();
+      LargeObjectMetadata largeObjectMetadata = objectUnderTest.largeObjectMetadata();
 
       assert largeObjectMetadata.getLargeObjectKey() == largeObjectKey : "Unexpected largeObjectKey in LargeObjectMetadat returned";
       assert largeObjectMetadata.getTotalSizeInBytes() == bytes.length : "Unexpected totalSizeInBytes in LargeObjectMetadat returned";
@@ -101,7 +101,7 @@ public class ChunksTest {
    @Test(expectedExceptions = UnsupportedOperationException.class)
    public void testThatChunkIteratorDoesNotSupportRemove() {
       InputStream largeObject = new ByteArrayInputStream("This is a large object".getBytes());
-      Chunks<Object> objectUnderTest = new Chunks<Object>(new Object(), largeObject,
+      Chunks objectUnderTest = new Chunks(new Object(), largeObject,
                newConfigurationWithMaxChunkSize(2L));
 
       objectUnderTest.iterator().remove();
