@@ -69,9 +69,9 @@ import org.infinispan.config.Configuration;
  * @see <a href="http://community.jboss.org/wiki/LargeObjectSupport">Large Object Support</a>
  */
 @NotThreadSafe
-public class Chunks<K> implements Iterable<Chunk> {
+public class Chunks implements Iterable<Chunk> {
 
-   private final K largeObjectKey;
+   private final Object largeObjectKey;
 
    private final InputStream largeObject;
 
@@ -81,7 +81,7 @@ public class Chunks<K> implements Iterable<Chunk> {
 
    private long numberOfAlreadyReadBytes = 0L;
 
-   public Chunks(K largeObjectKey, InputStream largeObject, Configuration configuration) {
+   public Chunks(Object largeObjectKey, InputStream largeObject, Configuration configuration) {
       if (!largeObject.markSupported())
          throw new IllegalArgumentException("The supplied LargeObject InputStream does not "
                   + "support mark(). This, however, is required.");
@@ -100,15 +100,15 @@ public class Chunks<K> implements Iterable<Chunk> {
       return this.new ChunkIterator();
    }
 
-   public LargeObjectMetadata<K> largeObjectMetadata() throws IllegalStateException {
+   public LargeObjectMetadata largeObjectMetadata() throws IllegalStateException {
       if (!allBytesRead())
          throw new IllegalStateException(
                   "Cannot create LargeObjectMetadata: this Chunks object has "
                            + "not yet read all bytes from its LargeObject.");
       List<String> allChunkKeys = chunkKeyProducer.chunkKeys();
 
-      return new LargeObjectMetadata<K>(largeObjectKey, maxChunkSizeInBytes,
-               numberOfAlreadyReadBytes, allChunkKeys.toArray(new String[allChunkKeys.size()]));
+      return new LargeObjectMetadata(largeObjectKey, maxChunkSizeInBytes, numberOfAlreadyReadBytes,
+               allChunkKeys.toArray(new String[allChunkKeys.size()]));
    }
 
    private boolean allBytesRead() {

@@ -54,17 +54,17 @@ public class LargeObjectMetadataManagerImpl implements LargeObjectMetadataManage
    }
 
    @Override
-   public <K> LargeObjectMetadata<K> correspondingLargeObjectMetadata(K largeObjectKey) {
-      return (LargeObjectMetadata<K>) largeObjectKeyToMetadata().get(largeObjectKey);
+   public <K> LargeObjectMetadata correspondingLargeObjectMetadata(K largeObjectKey) {
+      return largeObjectKeyToMetadata().get(largeObjectKey);
    }
 
    @Override
-   public <K> void storeLargeObjectMetadata(LargeObjectMetadata<K> largeObjectMetadata) {
+   public void storeLargeObjectMetadata(LargeObjectMetadata largeObjectMetadata) {
       largeObjectKeyToMetadata().putIfAbsent(largeObjectMetadata.getLargeObjectKey(),
-               (LargeObjectMetadata<Object>) largeObjectMetadata);
+               largeObjectMetadata);
    }
 
-   private ConcurrentMap<Object, LargeObjectMetadata<Object>> largeObjectKeyToMetadata() {
+   private ConcurrentMap<Object, LargeObjectMetadata> largeObjectKeyToMetadata() {
       return cacheContainer.getCache(largeObjectMetadataCacheName);
    }
 }

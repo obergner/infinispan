@@ -66,8 +66,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       Cache<Object, Object> cache1 = cache(0, TEST_CACHE_NAME);
       cache1.getAdvancedCache().writeToKey(largeObjectKey, largeObject);
 
-      LargeObjectMetadata<Object> writtenMetadata = defaultLargeObjectMetadataCache().get(
-               largeObjectKey);
+      LargeObjectMetadata writtenMetadata = defaultLargeObjectMetadataCache().get(largeObjectKey);
       assert writtenMetadata != null : "writeToKey(" + largeObjectKey + ", " + largeObject
                + ") did not store key metadata";
       assert writtenMetadata.getLargeObjectKey() == largeObjectKey : "writeToKey(" + largeObjectKey
@@ -90,8 +89,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       Cache<Object, Object> cache1 = cache(0, TEST_CACHE_NAME);
       cache1.getAdvancedCache().writeToKey(largeObjectKey, largeObject);
 
-      LargeObjectMetadata<Object> writtenMetadata = defaultLargeObjectMetadataCache().get(
-               largeObjectKey);
+      LargeObjectMetadata writtenMetadata = defaultLargeObjectMetadataCache().get(largeObjectKey);
       String chunkKey = writtenMetadata.getChunkKeys()[0];
       byte[] chunk = (byte[]) cache1.get(chunkKey);
 
@@ -112,8 +110,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       cache1.getAdvancedCache().writeToKey(largeObjectKey, largeObject);
       replListener(cache2).waitForRpc();
 
-      LargeObjectMetadata<Object> writtenMetadata = defaultLargeObjectMetadataCache().get(
-               largeObjectKey);
+      LargeObjectMetadata writtenMetadata = defaultLargeObjectMetadataCache().get(largeObjectKey);
       String chunkKey = writtenMetadata.getChunkKeys()[0];
 
       byte[] chunk = (byte[]) cache2.get(chunkKey);
@@ -167,7 +164,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
                + "] differs from the large object read [" + readLargeObject + "]";
    }
 
-   private Cache<Object, LargeObjectMetadata<Object>> defaultLargeObjectMetadataCache() {
+   private Cache<Object, LargeObjectMetadata> defaultLargeObjectMetadataCache() {
       return manager(0).getCache(
                FluentConfiguration.LargeObjectSupportConfig.DEFAULT_LARGEOBJECT_METADATA_CACHE);
    }
