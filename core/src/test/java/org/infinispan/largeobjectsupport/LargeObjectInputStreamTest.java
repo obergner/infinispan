@@ -22,8 +22,8 @@ public class LargeObjectInputStreamTest {
 
    @Test(expectedExceptions = IllegalArgumentException.class)
    public void largeObjectInputStreamConstructorShouldRejectMaxChunkSizeInBytesGreaterThanAllowed() {
-      LargeObjectMetadata<Object> illegalMetadata = new LargeObjectMetadata<Object>(new Object(),
-               Long.MAX_VALUE, 10L, new String[0]);
+      LargeObjectMetadata illegalMetadata = new LargeObjectMetadata(new Object(), Long.MAX_VALUE,
+               10L, new String[0]);
       new LargeObjectInputStream(illegalMetadata, Collections.emptyMap());
    }
 
@@ -99,8 +99,8 @@ public class LargeObjectInputStreamTest {
          chunkKeys.add(currentChunkKey);
          chunkCache.put(currentChunkKey, currentChunk);
       } while (currentSize < largeObjectSize);
-      LargeObjectMetadata<String> metadata = new LargeObjectMetadata<String>(UUID.randomUUID()
-               .toString(), maxChunkSize, largeObjectSize, chunkKeys.toArray(new String[0]));
+      LargeObjectMetadata metadata = new LargeObjectMetadata(UUID.randomUUID().toString(),
+               maxChunkSize, largeObjectSize, chunkKeys.toArray(new String[0]));
       return new TestData(chunkCache, metadata, largeObject);
    }
 
@@ -108,12 +108,11 @@ public class LargeObjectInputStreamTest {
 
       final Map<String, byte[]> chunkCache;
 
-      final LargeObjectMetadata<String> metadata;
+      final LargeObjectMetadata metadata;
 
       final byte[] largeObject;
 
-      TestData(Map<String, byte[]> chunkCache, LargeObjectMetadata<String> metadata,
-               byte[] largeObject) {
+      TestData(Map<String, byte[]> chunkCache, LargeObjectMetadata metadata, byte[] largeObject) {
          this.chunkCache = chunkCache;
          this.metadata = metadata;
          this.largeObject = largeObject;

@@ -37,12 +37,12 @@ import java.util.Iterator;
  * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
  * @since 5.1
  */
-public class LargeObjectMetadata<K> implements Serializable, Iterable<String> {
+public class LargeObjectMetadata implements Serializable, Iterable<String> {
 
    /** The serialVersionUID */
    private static final long serialVersionUID = 1100258474820117922L;
 
-   private final K largeObjectKey;
+   private final Object largeObjectKey;
 
    private final long maximumChunkSizeInBytes;
 
@@ -50,7 +50,7 @@ public class LargeObjectMetadata<K> implements Serializable, Iterable<String> {
 
    private final String[] chunkKeys;
 
-   public LargeObjectMetadata(K largeObjectKey, long maximumChunkSizeInBytes,
+   public LargeObjectMetadata(Object largeObjectKey, long maximumChunkSizeInBytes,
             long totalSizeInBytes, String[] chunkKeys) {
       this.largeObjectKey = largeObjectKey;
       this.maximumChunkSizeInBytes = maximumChunkSizeInBytes;
@@ -68,7 +68,7 @@ public class LargeObjectMetadata<K> implements Serializable, Iterable<String> {
     * 
     * @return the largeObjectKey.
     */
-   public final K getLargeObjectKey() {
+   public final Object getLargeObjectKey() {
       return largeObjectKey;
    }
 

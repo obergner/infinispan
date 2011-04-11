@@ -744,7 +744,7 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    @Override
    public InputStream readFromKey(K key) {
       assertKeyNotNull(key);
-      LargeObjectMetadata<K> largeObjectMetadata = largeObjectMetadataManager.correspondingLargeObjectMetadata(key);
+      LargeObjectMetadata largeObjectMetadata = largeObjectMetadataManager.correspondingLargeObjectMetadata(key);
       if (largeObjectMetadata == null) return null;
       return new LargeObjectInputStream(largeObjectMetadata, this);
    }

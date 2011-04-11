@@ -59,7 +59,7 @@ import org.infinispan.largeobjectsupport.LargeObjectMetadataManager;
  * 
  * @since 5.1
  */
-public class LargeObjectSupportInterceptor<K> extends CommandInterceptor {
+public class LargeObjectSupportInterceptor extends CommandInterceptor {
 
    private Configuration configuration;
 
@@ -80,7 +80,7 @@ public class LargeObjectSupportInterceptor<K> extends CommandInterceptor {
 
       checkCommandValid(ctx, command);
 
-      LargeObjectMetadata<K> largeObjectMetadata = chunkAndStoreEachChunk(ctx, command);
+      LargeObjectMetadata largeObjectMetadata = chunkAndStoreEachChunk(ctx, command);
       largeObjectMetadataManager.storeLargeObjectMetadata(largeObjectMetadata);
 
       // We don't need a return value
@@ -102,10 +102,10 @@ public class LargeObjectSupportInterceptor<K> extends CommandInterceptor {
       }
    }
 
-   private LargeObjectMetadata<K> chunkAndStoreEachChunk(InvocationContext ctx,
+   private LargeObjectMetadata chunkAndStoreEachChunk(InvocationContext ctx,
             PutKeyValueCommand command) throws InterruptedException, Throwable {
       InputStream largeObject = InputStream.class.cast(command.getValue());
-      Chunks<K> chunks = new Chunks<K>((K) command.getKey(), largeObject, configuration);
+      Chunks chunks = new Chunks(command.getKey(), largeObject, configuration);
       for (Chunk chunk : chunks) {
          /*
           * We need to (1) remember the key-largeObject-pair currently stored in command, (2)
