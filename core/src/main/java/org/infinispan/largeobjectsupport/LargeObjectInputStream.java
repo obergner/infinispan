@@ -86,7 +86,7 @@ public class LargeObjectInputStream extends InputStream {
       return currentChunk == null;
    }
 
-   private byte[] nextChunk(String chunkKey) {
+   private byte[] nextChunk(Object chunkKey) {
       return byte[].class.cast(largeObjectCache.get(chunkKey));
    }
 
