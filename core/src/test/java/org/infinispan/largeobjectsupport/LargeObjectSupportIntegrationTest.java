@@ -90,7 +90,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       cache1.getAdvancedCache().writeToKey(largeObjectKey, largeObject);
 
       LargeObjectMetadata writtenMetadata = defaultLargeObjectMetadataCache().get(largeObjectKey);
-      String chunkKey = writtenMetadata.getChunkKeys()[0];
+      Object chunkKey = writtenMetadata.getChunkKeys()[0];
       byte[] chunk = (byte[]) cache1.get(chunkKey);
 
       assert chunk != null : "writeToKey(" + largeObjectKey + ", " + largeObject
@@ -111,7 +111,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       replListener(cache2).waitForRpc();
 
       LargeObjectMetadata writtenMetadata = defaultLargeObjectMetadataCache().get(largeObjectKey);
-      String chunkKey = writtenMetadata.getChunkKeys()[0];
+      Object chunkKey = writtenMetadata.getChunkKeys()[0];
 
       byte[] chunk = (byte[]) cache2.get(chunkKey);
 
