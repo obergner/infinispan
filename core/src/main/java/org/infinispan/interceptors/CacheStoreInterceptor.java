@@ -28,6 +28,7 @@ import org.infinispan.commands.tx.CommitCommand;
 import org.infinispan.commands.tx.PrepareCommand;
 import org.infinispan.commands.tx.RollbackCommand;
 import org.infinispan.commands.write.ClearCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -202,6 +203,20 @@ public class CacheStoreInterceptor extends JmxStatsCommandInterceptor {
 
    @Override
    public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command) throws Throwable {
+      Object returnValue = invokeNextInterceptor(ctx, command);
+      if (skip(ctx, command) || ctx.isInTxScope() || !command.isSuccessful()) return returnValue;
+
+      Object key = command.getKey();
+      InternalCacheEntry se = getStoredEntry(key, ctx);
+      store.store(se);
+      if (trace) log.tracef("Stored entry %s under key %s", se, key);
+      if (getStatisticsEnabled()) cacheStores.incrementAndGet();
+
+      return returnValue;
+   }
+   
+   @Override
+   public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
       Object returnValue = invokeNextInterceptor(ctx, command);
       if (skip(ctx, command) || ctx.isInTxScope() || !command.isSuccessful()) return returnValue;
 

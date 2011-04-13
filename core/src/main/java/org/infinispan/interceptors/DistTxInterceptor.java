@@ -31,6 +31,7 @@ import org.infinispan.commands.tx.PrepareCommand;
 import org.infinispan.commands.tx.RollbackCommand;
 import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.DataWriteCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -132,6 +133,18 @@ public class DistTxInterceptor extends TxInterceptor {
       }
       try {
          return super.visitPutKeyValueCommand(ctx, command);
+      } finally {
+         dm.getTransactionLogger().afterCommand(ctx, command);
+      }
+   }
+   
+   @Override
+   public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
+      if (!dm.getTransactionLogger().beforeCommand(ctx, command)) {
+         throw new RehashInProgressException("Timed out waiting for the transaction lock");
+      }
+      try {
+         return super.visitPutKeyLargeObjectCommand(ctx, command);
       } finally {
          dm.getTransactionLogger().afterCommand(ctx, command);
       }

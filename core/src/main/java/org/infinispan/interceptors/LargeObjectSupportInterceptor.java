@@ -23,7 +23,7 @@ package org.infinispan.interceptors;
 
 import java.io.InputStream;
 
-import org.infinispan.commands.write.PutKeyValueCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.config.Configuration;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.factories.annotations.Inject;
@@ -73,12 +73,10 @@ public class LargeObjectSupportInterceptor extends CommandInterceptor {
    }
 
    @Override
-   public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command)
-            throws Throwable {
-      if (!command.isPutLargeObject())
-         return invokeNextInterceptor(ctx, command);
-
+   public Object visitPutKeyLargeObjectCommand(InvocationContext ctx,
+            PutKeyLargeObjectCommand command) throws Throwable {
       checkCommandValid(ctx, command);
+      if (command.getValue() instanceof byte[]) return invokeNextInterceptor(ctx, command);
 
       LargeObjectMetadata largeObjectMetadata = chunkAndStoreEachChunk(ctx, command);
       largeObjectMetadataManager.storeLargeObjectMetadata(largeObjectMetadata);
@@ -87,14 +85,14 @@ public class LargeObjectSupportInterceptor extends CommandInterceptor {
       return null;
    }
 
-   private void checkCommandValid(InvocationContext ctx, PutKeyValueCommand command)
+   private void checkCommandValid(InvocationContext ctx, PutKeyLargeObjectCommand command)
             throws IllegalStateException {
       if (ctx.isInTxScope())
          throw new IllegalStateException(
                   "Storing Large Objects in a transactional context is not (yet) supported.");
-      if (!(command.getValue() instanceof InputStream))
+      if (!(command.getValue() instanceof InputStream) && !(command.getValue() instanceof byte[]))
          throw new IllegalStateException("Value [" + command.getValue()
-                  + "] to be stored is not an InputStream");
+                  + "] to be stored is neither an InputStream nor a byte array");
       // TODO: Remove as soon as we do support updates
       if (largeObjectMetadataManager.alreadyUsedByLargeObject(command.getKey())) {
          throw new UnsupportedOperationException("Key [" + command.getKey()
@@ -103,7 +101,7 @@ public class LargeObjectSupportInterceptor extends CommandInterceptor {
    }
 
    private LargeObjectMetadata chunkAndStoreEachChunk(InvocationContext ctx,
-            PutKeyValueCommand command) throws InterruptedException, Throwable {
+            PutKeyLargeObjectCommand command) throws InterruptedException, Throwable {
       InputStream largeObject = InputStream.class.cast(command.getValue());
       Chunks chunks = new Chunks(command.getKey(), largeObject, configuration);
       for (Chunk chunk : chunks) {

@@ -33,6 +33,7 @@ import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.EvictCommand;
 import org.infinispan.commands.write.InvalidateCommand;
 import org.infinispan.commands.write.InvalidateL1Command;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -84,6 +85,7 @@ public class LockingInterceptor extends CommandInterceptor {
       this.transport = transport;
    }
 
+   @SuppressWarnings("unused")
    @Start
    private void determineIsolationLevel() {
       useReadCommitted = configuration.getIsolationLevel() == IsolationLevel.READ_COMMITTED;
@@ -175,7 +177,7 @@ public class LockingInterceptor extends CommandInterceptor {
                break;
             }
          }
-         boolean goRemoteFirst = configuration.isEnableDeadlockDetection() && localTxScope;
+         boolean goRemoteFirst = configuration.isDeadlockDetectionEnabled() && localTxScope;
          if (goRemoteFirst) {
             Object result = invokeNextInterceptor(ctx, c);
             try {
@@ -300,6 +302,19 @@ public class LockingInterceptor extends CommandInterceptor {
          doAfterCall(ctx);
       }
    }
+   
+   @Override
+   public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
+      try {
+         entryFactory.wrapEntryForWriting(ctx, command.getKey(), true, false, false, false, !command.isPutIfAbsent());
+         return invokeNextInterceptor(ctx, command);
+      } catch (Throwable te) {
+         return cleanLocksAndRethrow(ctx, te);
+      }
+      finally {
+         doAfterCall(ctx);
+      }
+   }
 
    @Override
    public Object visitPutMapCommand(InvocationContext ctx, PutMapCommand command) throws Throwable {
@@ -342,7 +357,6 @@ public class LockingInterceptor extends CommandInterceptor {
       }
    }
 
-   @SuppressWarnings("unchecked")
    private void doAfterCall(InvocationContext ctx) {
       // for non-transactional stuff.
       if (!ctx.isInTxScope()) {

@@ -28,6 +28,7 @@ import org.infinispan.commands.VisitableCommand;
 import org.infinispan.commands.tx.PrepareCommand;
 import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.InvalidateCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -86,6 +87,7 @@ public class InvalidationInterceptor extends BaseRpcInterceptor {
       this.commandsFactory = commandsFactory;
    }
 
+   @SuppressWarnings("unused")
    @Start
    private void initTxMap() {
       this.setStatisticsEnabled(configuration.isExposeJmxStatistics());
@@ -93,6 +95,14 @@ public class InvalidationInterceptor extends BaseRpcInterceptor {
 
    @Override
    public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command) throws Throwable {
+      if (!isPutForExternalRead(ctx)) {
+         return handleInvalidate(ctx, command, command.getKey());
+      }
+      return invokeNextInterceptor(ctx, command);
+   }
+   
+   @Override
+   public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
       if (!isPutForExternalRead(ctx)) {
          return handleInvalidate(ctx, command, command.getKey());
       }

@@ -32,6 +32,7 @@ import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.EvictCommand;
 import org.infinispan.commands.write.InvalidateCommand;
 import org.infinispan.commands.write.InvalidateL1Command;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -134,7 +135,7 @@ public class ReplicableCommandExternalizer extends AbstractExternalizer<Replicab
             StateTransferControlCommand.class, GetKeyValueCommand.class,
             ClearCommand.class, EvictCommand.class,
             InvalidateCommand.class, InvalidateL1Command.class,
-            PutKeyValueCommand.class, PutMapCommand.class,
+            PutKeyValueCommand.class, PutKeyLargeObjectCommand.class, PutMapCommand.class,
             RemoveCommand.class, ReplaceCommand.class);
       // Search only those commands that replicable and not cache specific replicable commands
       Collection<Class<? extends ReplicableCommand>> moduleCommands = moduleOnlyReplicableCommands();

@@ -45,6 +45,7 @@ import org.infinispan.commands.tx.RollbackCommand;
 import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.InvalidateCommand;
 import org.infinispan.commands.write.InvalidateL1Command;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -111,6 +112,9 @@ public class RemoteCommandsFactory {
          switch (id) {
             case PutKeyValueCommand.COMMAND_ID:
                command = new PutKeyValueCommand();
+            break;
+         case PutKeyLargeObjectCommand.COMMAND_ID:
+            command = new PutKeyLargeObjectCommand();
                break;
             case PutMapCommand.COMMAND_ID:
                command = new PutMapCommand();

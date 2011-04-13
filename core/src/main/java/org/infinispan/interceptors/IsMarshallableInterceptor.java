@@ -25,6 +25,7 @@ package org.infinispan.interceptors;
 
 import org.infinispan.commands.control.LockControlCommand;
 import org.infinispan.commands.read.GetKeyValueCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -97,6 +98,16 @@ public class IsMarshallableInterceptor extends CommandInterceptor {
          checkMarshallable(command.getKey(), command.getValue());
       return super.visitPutKeyValueCommand(ctx, command);
    }
+   
+   /*
+    * FIXME: This is probably not necessary for writing large objects. byte[] should always be marshallable.
+    */
+   @Override
+   public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
+      if (isStoreAsBinary() || isClusterInvocation(ctx) || isStoreInvocation(ctx))
+         checkMarshallable(command.getKey(), command.getValue());
+      return super.visitPutKeyValueCommand(ctx, command);
+   }
 
    @Override
    public Object visitPutMapCommand(InvocationContext ctx, PutMapCommand command) throws Throwable {
@@ -133,7 +144,7 @@ public class IsMarshallableInterceptor extends CommandInterceptor {
       // of lazy deserialization or when an async store is in place. So, if
       // any cache store is configured, check whether it'll be skipped
       return !configuration.getCacheMode().isClustered()
-            && configuration.getCacheLoaderManagerConfig().getFirstCacheLoaderConfig() != null
+            && !configuration.getCacheLoaders().isEmpty()
             && !ctx.hasFlag(Flag.SKIP_CACHE_STORE);
    }
 

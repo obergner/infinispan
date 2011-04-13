@@ -23,6 +23,7 @@
 package org.infinispan.interceptors;
 
 import org.infinispan.commands.read.GetKeyValueCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -58,6 +59,13 @@ public class ActivationInterceptor extends CacheLoaderInterceptor {
    @Override
    public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command) throws Throwable {
       Object retval = super.visitPutKeyValueCommand(ctx, command);
+      removeFromStore(command.getKey());
+      return retval;
+   }
+   
+   @Override
+   public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
+      Object retval = super.visitPutKeyLargeObjectCommand(ctx, command);
       removeFromStore(command.getKey());
       return retval;
    }
