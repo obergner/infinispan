@@ -32,6 +32,7 @@ import org.infinispan.commands.read.SizeCommand;
 import org.infinispan.commands.read.ValuesCommand;
 import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.EvictCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -708,11 +709,9 @@ public class CacheDelegate<K, V> extends CacheSupport<K, V> implements AdvancedC
    public void writeToKey(K key, InputStream largeObject) {
       assertKeyNotNull(key);
       InvocationContext ctx = getInvocationContext(false);
-      PutKeyValueCommand command = commandsFactory.buildPutKeyValueCommand(key, largeObject,
+      PutKeyLargeObjectCommand command = commandsFactory.buildPutKeyLargeObjectCommand(key, largeObject,
                MILLISECONDS.toMillis(defaultLifespan), MILLISECONDS.toMillis(defaultMaxIdleTime),
                ctx.getFlags());
-      // Mark this command as pertaining to a large object
-      command.setPutLargeObject(true);
       invoker.invoke(ctx, command);
    }
    

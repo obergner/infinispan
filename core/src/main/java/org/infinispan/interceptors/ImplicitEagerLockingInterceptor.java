@@ -26,6 +26,7 @@ import org.infinispan.commands.CommandsFactory;
 import org.infinispan.commands.control.LockControlCommand;
 import org.infinispan.commands.write.EvictCommand;
 import org.infinispan.commands.write.InvalidateCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -60,6 +61,14 @@ public class ImplicitEagerLockingInterceptor extends CommandInterceptor {
 
    @Override
    public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command) throws Throwable {
+      if (shouldAcquireRemoteLock(ctx)) {
+         lockEagerly(ctx, Collections.singleton(command.getKey()));
+      }
+      return invokeNextInterceptor(ctx, command);
+   }
+   
+   @Override
+   public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
       if (shouldAcquireRemoteLock(ctx)) {
          lockEagerly(ctx, Collections.singleton(command.getKey()));
       }

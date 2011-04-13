@@ -22,6 +22,7 @@
  */
 package org.infinispan.interceptors;
 
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -65,6 +66,7 @@ public class DistCacheStoreInterceptor extends CacheStoreInterceptor {
       this.transport = transport;
    }
 
+   @SuppressWarnings("unused")
    @Start(priority = 25)
    // after the distribution manager!
    private void setAddress() {
@@ -81,6 +83,18 @@ public class DistCacheStoreInterceptor extends CacheStoreInterceptor {
       InternalCacheEntry se = getStoredEntry(key, ctx);
       store.store(se);
       log.tracef("Stored entry %s under key %s", se, key);
+      if (getStatisticsEnabled()) cacheStores.incrementAndGet();
+      return returnValue;
+   }
+   
+   @Override
+   public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
+      Object returnValue = invokeNextInterceptor(ctx, command);
+      Object key = command.getKey();
+      if (skip(ctx, key) || ctx.isInTxScope() || !command.isSuccessful()) return returnValue;
+      InternalCacheEntry se = getStoredEntry(key, ctx);
+      store.store(se);
+      log.trace("Stored entry %s under key %s", se, key);
       if (getStatisticsEnabled()) cacheStores.incrementAndGet();
       return returnValue;
    }

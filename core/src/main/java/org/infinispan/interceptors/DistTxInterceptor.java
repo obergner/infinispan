@@ -30,6 +30,7 @@ import org.infinispan.commands.tx.PrepareCommand;
 import org.infinispan.commands.tx.RollbackCommand;
 import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.DataWriteCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -98,6 +99,13 @@ public class DistTxInterceptor extends TxInterceptor {
 
    @Override
    public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command) throws Throwable {
+      Object o = super.visitPutKeyValueCommand(ctx, command);
+      if (!ctx.isInTxScope() && command.isSuccessful()) dm.getTransactionLogger().logIfNeeded(command);
+      return o;
+   }
+   
+   @Override
+   public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
       Object o = super.visitPutKeyValueCommand(ctx, command);
       if (!ctx.isInTxScope() && command.isSuccessful()) dm.getTransactionLogger().logIfNeeded(command);
       return o;
