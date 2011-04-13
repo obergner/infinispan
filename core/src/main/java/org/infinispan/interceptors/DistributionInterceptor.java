@@ -29,6 +29,7 @@ import org.infinispan.commands.tx.CommitCommand;
 import org.infinispan.commands.tx.PrepareCommand;
 import org.infinispan.commands.tx.RollbackCommand;
 import org.infinispan.commands.write.ClearCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -223,6 +224,16 @@ public class DistributionInterceptor extends BaseRpcInterceptor {
       // If this was a remote put record that which sent it
       if (isL1CacheEnabled && !ctx.isOriginLocal()) {
       	l1Manager.addRequestor(command.getKey(), ctx.getOrigin());
+      }
+      return returnValue;
+   }
+   
+   @Override
+   public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
+      Object returnValue = handleWriteCommand(ctx, command, new SingleKeyRecipientGenerator(command.getKey()), false, false);
+      // If this was a remote put record that which sent it
+      if (isL1CacheEnabled && !ctx.isOriginLocal()) {
+            l1Manager.addRequestor(command.getKey(), ctx.getOrigin());
       }
       return returnValue;
    }

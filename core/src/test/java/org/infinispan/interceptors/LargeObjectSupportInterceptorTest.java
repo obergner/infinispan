@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
-import org.infinispan.commands.write.PutKeyValueCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.config.Configuration;
 import org.infinispan.config.FluentConfiguration;
 import org.infinispan.container.entries.CacheEntry;
@@ -31,7 +31,6 @@ import org.infinispan.largeobjectsupport.LargeObjectMetadataManagerImpl;
 import org.infinispan.lifecycle.ComponentStatus;
 import org.infinispan.manager.CacheContainer;
 import org.infinispan.manager.EmbeddedCacheManager;
-import org.infinispan.util.BidirectionalMap;
 import org.infinispan.util.concurrent.NotifyingFuture;
 import org.testng.annotations.Test;
 
@@ -64,34 +63,10 @@ public class LargeObjectSupportInterceptorTest {
       CacheEntry cacheEntry = new ReadCommittedEntry(largeObjectKey, largeObject, 0L);
       txCtx.putLookedUpEntry(largeObjectKey, cacheEntry);
 
-      PutKeyValueCommand writeLargeObjectCommand = new PutKeyValueCommand(largeObjectKey,
-               largeObject, false, true, null, 0, 0, Collections.<Flag> emptySet());
+      PutKeyLargeObjectCommand writeLargeObjectCommand = new PutKeyLargeObjectCommand(
+               largeObjectKey, largeObject, false, null, 0, 0, Collections.<Flag> emptySet());
 
-      objectUnderTest.visitPutKeyValueCommand(txCtx, writeLargeObjectCommand);
-   }
-
-   @Test(expectedExceptions = IllegalStateException.class)
-   public void testThatLargeObjectChunkingInterceptorRejectsNonInputStreamValue() throws Throwable {
-      LargeObjectSupportInterceptor objectUnderTest = new LargeObjectSupportInterceptor();
-      objectUnderTest.init(newConfigurationWithMaxChunkSize(3L),
-               newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
-
-      LocalTxInvocationContext txCtx = new LocalTxInvocationContext() {
-         @Override
-         public void putLookedUpEntry(Object key, CacheEntry e) {
-            // Ignore
-         }
-      };
-
-      Object largeObjectKey = new Object();
-      Object nonInputStreamLargeObject = new Object();
-      CacheEntry cacheEntry = new ReadCommittedEntry(largeObjectKey, nonInputStreamLargeObject, 0L);
-      txCtx.putLookedUpEntry(largeObjectKey, cacheEntry);
-
-      PutKeyValueCommand writeLargeObjectCommand = new PutKeyValueCommand(largeObjectKey,
-               nonInputStreamLargeObject, false, true, null, 0, 0, Collections.<Flag> emptySet());
-
-      objectUnderTest.visitPutKeyValueCommand(txCtx, writeLargeObjectCommand);
+      objectUnderTest.visitPutKeyLargeObjectCommand(txCtx, writeLargeObjectCommand);
    }
 
    @Test
@@ -104,8 +79,8 @@ public class LargeObjectSupportInterceptorTest {
       final List<byte[]> receivedChunkData = new ArrayList<byte[]>();
       CommandInterceptor recordingCommandInterceptor = new CommandInterceptor() {
          @Override
-         public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command)
-                  throws Throwable {
+         public Object visitPutKeyLargeObjectCommand(InvocationContext ctx,
+                  PutKeyLargeObjectCommand command) throws Throwable {
             assert command.getValue() != null : "LargeObjectSupportInterceptor did not store "
                      + "any value in PutKeyValueCommand";
             assert command.getValue() instanceof byte[] : "LargeObjectSupportInterceptor did not store "
@@ -124,55 +99,14 @@ public class LargeObjectSupportInterceptorTest {
       InvocationContext ctx = new NonTxInvocationContext();
       ctx.putLookedUpEntry(largeObjectKey, cacheEntry);
 
-      PutKeyValueCommand writeLargeObjectCommand = new PutKeyValueCommand(largeObjectKey,
-               largeObject, false, true, null, 0, 0, Collections.<Flag> emptySet());
+      PutKeyLargeObjectCommand writeLargeObjectCommand = new PutKeyLargeObjectCommand(
+               largeObjectKey, largeObject, false, null, 0, 0, Collections.<Flag> emptySet());
 
-      objectUnderTest.visitPutKeyValueCommand(ctx, writeLargeObjectCommand);
+      objectUnderTest.visitPutKeyLargeObjectCommand(ctx, writeLargeObjectCommand);
 
       assert Arrays.equals(receivedChunkData.get(0), new byte[] { 1, 2, 3 });
       assert Arrays.equals(receivedChunkData.get(1), new byte[] { 4, 5, 6 });
       assert Arrays.equals(receivedChunkData.get(2), new byte[] { 7 });
-   }
-
-   @Test
-   public void testThatLargeObjectChunkingInterceptorSkipsChunkingIfPutLargeObjectIsFalse()
-            throws Throwable {
-      LargeObjectSupportInterceptor objectUnderTest = new LargeObjectSupportInterceptor();
-      objectUnderTest.init(newConfigurationWithMaxChunkSize(3L),
-               newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
-
-      final List<Object> receivedValues = new ArrayList<Object>();
-      CommandInterceptor recordingCommandInterceptor = new CommandInterceptor() {
-         @Override
-         public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command)
-                  throws Throwable {
-            BidirectionalMap<Object, CacheEntry> entriesStoredInCtx = ctx.getLookedUpEntries();
-            assert entriesStoredInCtx.size() > 0 : "LargeObjectSupportInterceptor did not store "
-                     + "any entries in InvocationContext";
-            assert entriesStoredInCtx.size() == 1 : "LargeObjectSupportInterceptor did stored more "
-                     + "than one entry in InvocationContext";
-            CacheEntry cacheEntry = entriesStoredInCtx.values().iterator().next();
-            receivedValues.add(cacheEntry.getValue());
-
-            return null;
-         }
-      };
-      objectUnderTest.setNext(recordingCommandInterceptor);
-
-      Object largeObjectKey = new Object();
-      Object largeObject = new Object();
-      CacheEntry cacheEntry = new ReadCommittedEntry(largeObjectKey, largeObject, 0L);
-      InvocationContext ctx = new NonTxInvocationContext();
-      ctx.putLookedUpEntry(largeObjectKey, cacheEntry);
-
-      PutKeyValueCommand writeLargeObjectCommand = new PutKeyValueCommand(largeObjectKey,
-               largeObject, false, false, null, 0, 0, Collections.<Flag> emptySet());
-
-      objectUnderTest.visitPutKeyValueCommand(ctx, writeLargeObjectCommand);
-
-      assert receivedValues.get(0) == largeObject : "LargeObjectSupportInterceptor did NOT leave "
-               + "the value to be stored unaltered although the putLargeObject flag "
-               + "on the PutKeyValueCommand was set to false";
    }
 
    @Test
@@ -184,8 +118,8 @@ public class LargeObjectSupportInterceptorTest {
 
       CommandInterceptor noopCommandInterceptor = new CommandInterceptor() {
          @Override
-         public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command)
-                  throws Throwable {
+         public Object visitPutKeyLargeObjectCommand(InvocationContext ctx,
+                  PutKeyLargeObjectCommand command) throws Throwable {
             return null;
          }
       };
@@ -198,10 +132,10 @@ public class LargeObjectSupportInterceptorTest {
       InvocationContext ctx = new NonTxInvocationContext();
       ctx.putLookedUpEntry(largeObjectKey, cacheEntry);
 
-      PutKeyValueCommand writeLargeObjectCommand = new PutKeyValueCommand(largeObjectKey,
-               largeObject, false, true, null, 0, 0, Collections.<Flag> emptySet());
+      PutKeyLargeObjectCommand writeLargeObjectCommand = new PutKeyLargeObjectCommand(
+               largeObjectKey, largeObject, false, null, 0, 0, Collections.<Flag> emptySet());
 
-      objectUnderTest.visitPutKeyValueCommand(ctx, writeLargeObjectCommand);
+      objectUnderTest.visitPutKeyLargeObjectCommand(ctx, writeLargeObjectCommand);
 
       assert largeObjectMetadataManager.alreadyUsedByLargeObject(largeObjectKey) : "LargeObjectSupportInterceptor did NOT store Large Object's metadata";
    }

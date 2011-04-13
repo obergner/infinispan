@@ -28,6 +28,7 @@ import org.infinispan.commands.read.GetKeyValueCommand;
 import org.infinispan.commands.read.KeySetCommand;
 import org.infinispan.commands.read.ValuesCommand;
 import org.infinispan.commands.write.InvalidateCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -105,6 +106,40 @@ public class MarshalledValueInterceptor extends CommandInterceptor {
 
    @Override
    public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command) throws Throwable {
+      MarshalledValue key = null;
+      MarshalledValue value = null;
+      if (!isTypeExcluded(command.getKey().getClass())) {
+         key = createMarshalledValue(command.getKey(), ctx);
+         command.setKey(key);
+      }
+      if (!isTypeExcluded(command.getValue().getClass())) {
+         value = createMarshalledValue(command.getValue(), ctx);
+         command.setValue(value);
+      }
+
+      // If origin is remote, set equality preference for raw so that deserialization is avoided
+      // Don't do this for local invocations so that unnecessary serialization is avoided.
+      boolean isRawComparisonRequired = !ctx.isOriginLocal() && command.getKey() instanceof MarshalledValue;
+      if (isRawComparisonRequired)
+         ((MarshalledValue) command.getKey()).setEqualityPreferenceForInstance(false);
+
+      try {
+         Object retVal = invokeNextInterceptor(ctx, command);
+         compact(key);
+         compact(value);
+         return processRetVal(retVal, ctx);
+      } finally {
+         // Regardless of what happens with the remote key update, revert to equality for instance
+         if (isRawComparisonRequired)
+            ((MarshalledValue) command.getKey()).setEqualityPreferenceForInstance(true);
+      }
+   }
+   
+   /*
+    * FIXME: This is probably not needed for byte[].
+    */
+   @Override
+   public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
       MarshalledValue key = null;
       MarshalledValue value = null;
       if (!isTypeExcluded(command.getKey().getClass())) {

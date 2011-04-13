@@ -44,7 +44,6 @@ public class PutKeyValueCommand extends AbstractDataWriteCommand {
 
    Object value;
    boolean putIfAbsent;
-   boolean putLargeObject;
    CacheNotifier notifier;
    boolean successful = true;
    long lifespanMillis = -1;
@@ -53,14 +52,13 @@ public class PutKeyValueCommand extends AbstractDataWriteCommand {
    public PutKeyValueCommand() {
    }
 
-   public PutKeyValueCommand(Object key, Object value, boolean putIfAbsent, boolean putLargeObject, CacheNotifier notifier, long lifespanMillis, long maxIdleTimeMillis, Set<Flag> flags) {
+   public PutKeyValueCommand(Object key, Object value, boolean putIfAbsent, CacheNotifier notifier, long lifespanMillis, long maxIdleTimeMillis, Set<Flag> flags) {
       super(key, flags);
       this.value = value;
       this.putIfAbsent = putIfAbsent;
       this.notifier = notifier;
       this.lifespanMillis = lifespanMillis;
       this.maxIdleTimeMillis = maxIdleTimeMillis;
-      this.putLargeObject = putLargeObject;
    }
 
    public void init(CacheNotifier notifier) {
@@ -80,21 +78,6 @@ public class PutKeyValueCommand extends AbstractDataWriteCommand {
    }
 
    public Object perform(InvocationContext ctx) throws Throwable {
-      Object o;
-      if (!isPutLargeObject())
-         o = handleRegularInvocation(ctx);
-      else
-         o = handleLargeObjectInvocation(ctx);
-      return o;
-   }
-
-   /**
-    * Handles the case where the value to be stored is a regular object, i.e. not a large object.
-    * 
-    * @param ctx
-    * @return
-    */
-   private Object handleRegularInvocation(InvocationContext ctx) {
       Object o;
       MVCCEntry e = (MVCCEntry) ctx.lookupEntry(key);
       Object entryValue = e.getValue();
@@ -127,30 +110,6 @@ public class PutKeyValueCommand extends AbstractDataWriteCommand {
       }
       return o;
    }
-   
-   /**
-    * Handles the case where the value to be stored is a large object.
-    * 
-    * @param ctx
-    * @return
-    */
-   private Object handleLargeObjectInvocation(InvocationContext ctx) {
-      if (!(value instanceof byte[]))
-         throw new IllegalStateException(
-                  "This PutKeyValueCommand ["
-                           + this
-                           + "] is configured as a command handling a large object. However, the supplied value ["
-                           + value + "] is not a byte array/chunk");
-      MVCCEntry e = (MVCCEntry) ctx.lookupEntry(key);
-      e.setValue(value);
-      if (e.isRemoved()) {
-         e.setRemoved(false);
-         e.setValid(true);
-      }
-      // We write a chunk of a large object. We don't need to return
-      // anything.
-      return null;
-   }
 
    public byte getCommandId() {
       return COMMAND_ID;
@@ -161,7 +120,7 @@ public class PutKeyValueCommand extends AbstractDataWriteCommand {
    }
 
    public void setParameters(int commandId, Object[] parameters) {
-      if (commandId != COMMAND_ID) throw new IllegalStateException("Invalid method id");
+      if (commandId != getCommandId()) throw new IllegalStateException("Invalid method id");
       key = parameters[0];
       value = parameters[1];
       lifespanMillis = (Long) parameters[2];
@@ -177,24 +136,6 @@ public class PutKeyValueCommand extends AbstractDataWriteCommand {
       this.putIfAbsent = putIfAbsent;
    }
    
-   /**
-    * Is this command handling a <em>Large Object</em>?
-    * 
-    * @return the putLargeObject.
-    */
-   public boolean isPutLargeObject() {
-      return putLargeObject;
-   }
-
-   /**
-    * Set whether this command is handling a <em>Large Object</em>.
-    * 
-    * @param putLargeObject The putLargeObject to set.
-    */
-   public void setPutLargeObject(boolean putLargeObject) {
-      this.putLargeObject = putLargeObject;
-   }
-
    public long getLifespanMillis() {
       return lifespanMillis;
    }
@@ -214,7 +155,6 @@ public class PutKeyValueCommand extends AbstractDataWriteCommand {
       if (lifespanMillis != that.lifespanMillis) return false;
       if (maxIdleTimeMillis != that.maxIdleTimeMillis) return false;
       if (putIfAbsent != that.putIfAbsent) return false;
-      if (putLargeObject != that.putLargeObject) return false;
       if (value != null ? !value.equals(that.value) : that.value != null) return false;
 
       return true;
@@ -225,7 +165,6 @@ public class PutKeyValueCommand extends AbstractDataWriteCommand {
       int result = super.hashCode();
       result = 31 * result + (value != null ? value.hashCode() : 0);
       result = 31 * result + (putIfAbsent ? 1 : 0);
-      result = 31 * result + (putLargeObject ? 1 : 0);
       result = 31 * result + (int) (lifespanMillis ^ (lifespanMillis >>> 32));
       result = 31 * result + (int) (maxIdleTimeMillis ^ (maxIdleTimeMillis >>> 32));
       return result;
@@ -239,7 +178,6 @@ public class PutKeyValueCommand extends AbstractDataWriteCommand {
             .append(", value=").append(value)
             .append(", flags=").append(flags)
             .append(", putIfAbsent=").append(putIfAbsent)
-            .append(", putLargeObject=").append(putLargeObject)
             .append(", lifespanMillis=").append(lifespanMillis)
             .append(", maxIdleTimeMillis=").append(maxIdleTimeMillis)
             .append("}")

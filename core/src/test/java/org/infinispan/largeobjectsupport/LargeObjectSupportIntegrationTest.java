@@ -9,7 +9,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import org.infinispan.Cache;
-import org.infinispan.commands.write.PutKeyValueCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.config.Configuration;
 import org.infinispan.config.FluentConfiguration;
 import org.infinispan.test.MultipleCacheManagersTest;
@@ -106,7 +106,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       Cache<Object, Object> cache1 = cache(0, TEST_CACHE_NAME);
       Cache<Object, Object> cache2 = cache(1, TEST_CACHE_NAME);
 
-      replListener(cache2).expect(PutKeyValueCommand.class);
+      replListener(cache2).expect(PutKeyLargeObjectCommand.class);
       cache1.getAdvancedCache().writeToKey(largeObjectKey, largeObject);
       replListener(cache2).waitForRpc();
 
@@ -147,7 +147,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       Cache<Object, Object> largeObjectCache1 = cache(0, TEST_CACHE_NAME);
       Cache<Object, Object> largeObjectCache2 = cache(1, TEST_CACHE_NAME);
 
-      replListener(largeObjectCache2).expect(PutKeyValueCommand.class);
+      replListener(largeObjectCache2).expect(PutKeyLargeObjectCommand.class);
       largeObjectCache1.getAdvancedCache().writeToKey(largeObjectKey, largeObject);
       replListener(largeObjectCache2).waitForRpc();
 

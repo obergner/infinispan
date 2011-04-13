@@ -24,6 +24,7 @@ package org.infinispan.interceptors;
 
 import org.infinispan.commands.read.GetKeyValueCommand;
 import org.infinispan.commands.write.EvictCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -110,6 +111,16 @@ public class CacheMgmtInterceptor extends JmxStatsCommandInterceptor {
    @Override
    //Map.put(key,value) :: oldValue
    public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command) throws Throwable {
+      long t1 = System.currentTimeMillis();
+      Object retval = invokeNextInterceptor(ctx, command);
+      long t2 = System.currentTimeMillis();
+      storeTimes.getAndAdd(t2 - t1);
+      stores.incrementAndGet();
+      return retval;
+   }
+   
+   @Override
+   public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
       long t1 = System.currentTimeMillis();
       Object retval = invokeNextInterceptor(ctx, command);
       long t2 = System.currentTimeMillis();

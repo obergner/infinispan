@@ -46,6 +46,7 @@ import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.EvictCommand;
 import org.infinispan.commands.write.InvalidateCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
 import org.infinispan.commands.write.ReplaceCommand;
@@ -61,6 +62,7 @@ import org.infinispan.remoting.transport.Address;
 import org.infinispan.transaction.xa.GlobalTransaction;
 
 import javax.transaction.xa.Xid;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -89,6 +91,16 @@ public interface CommandsFactory {
     * @return a PutKeyValueCommand
     */
    PutKeyValueCommand buildPutKeyValueCommand(Object key, Object value, long lifespanMillis, long maxIdleTimeMillis, Set<Flag> flags);
+   
+   /**
+    * Builds a PutKeyLargeObjectCommand
+    * @param key key to put
+    * @param largeObject value to put
+    * @param lifespanMillis lifespan in milliseconds.  -1 if lifespan is not used.
+    * @param maxIdleTimeMillis max idle time in milliseconds.  -1 if maxIdle is not used.
+    * @return a PutKeyValueCommand
+    */
+   PutKeyLargeObjectCommand buildPutKeyLargeObjectCommand(Object key, InputStream largeObject, long lifespanMillis, long maxIdleTimeMillis, Set<Flag> flags);
 
    /**
     * Builds a RemoveCommand

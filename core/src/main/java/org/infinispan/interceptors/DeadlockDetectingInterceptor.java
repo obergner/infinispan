@@ -25,6 +25,7 @@ package org.infinispan.interceptors;
 import org.infinispan.commands.VisitableCommand;
 import org.infinispan.commands.control.LockControlCommand;
 import org.infinispan.commands.tx.PrepareCommand;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.RemoveCommand;
 import org.infinispan.commands.write.ReplaceCommand;
@@ -54,13 +55,18 @@ public class DeadlockDetectingInterceptor extends CommandInterceptor {
     */
    @Start
    public void start() {
-      if (!configuration.isEnableDeadlockDetection()) {
+      if (!configuration.isDeadlockDetectionEnabled()) {
          throw new IllegalStateException("This interceptor should not be present in the chain as deadlock detection is not used!");
       }
    }
 
    @Override
    public Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command) throws Throwable {
+      return handleDataCommand(ctx, command);
+   }
+   
+   @Override
+   public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
       return handleDataCommand(ctx, command);
    }
 

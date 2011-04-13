@@ -48,6 +48,7 @@ import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.EvictCommand;
 import org.infinispan.commands.write.InvalidateCommand;
 import org.infinispan.commands.write.InvalidateL1Command;
+import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -79,6 +80,7 @@ import org.infinispan.util.logging.Log;
 import org.infinispan.util.logging.LogFactory;
 
 import javax.transaction.xa.Xid;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -144,7 +146,11 @@ public class CommandsFactoryImpl implements CommandsFactory {
    }
 
    public PutKeyValueCommand buildPutKeyValueCommand(Object key, Object value, long lifespanMillis, long maxIdleTimeMillis, Set<Flag> flags) {
-      return new PutKeyValueCommand(key, value, false, false, notifier, lifespanMillis, maxIdleTimeMillis, flags);
+      return new PutKeyValueCommand(key, value, false, notifier, lifespanMillis, maxIdleTimeMillis, flags);
+   }
+   
+   public PutKeyLargeObjectCommand buildPutKeyLargeObjectCommand(Object key, InputStream largeObject, long lifespanMillis, long maxIdleTimeMillis, Set<Flag> flags) {
+      return new PutKeyLargeObjectCommand(key, largeObject, false, notifier, lifespanMillis, maxIdleTimeMillis, flags);
    }
 
    public RemoveCommand buildRemoveCommand(Object key, Object value, Set<Flag> flags) {
@@ -292,7 +298,7 @@ public class CommandsFactoryImpl implements CommandsFactory {
                   initializeReplicableCommand(nested, false);
                }
             pc.markTransactionAsRemote(isRemote);
-            if (configuration.isEnableDeadlockDetection() && isRemote) {
+            if (configuration.isDeadlockDetectionEnabled() && isRemote) {
                DldGlobalTransaction transaction = (DldGlobalTransaction) pc.getGlobalTransaction();
                transaction.setLocksHeldAtOrigin(pc.getAffectedKeys());
             }
@@ -319,7 +325,7 @@ public class CommandsFactoryImpl implements CommandsFactory {
             LockControlCommand lcc = (LockControlCommand) c;
             lcc.init(interceptorChain, icc, txTable);
             lcc.markTransactionAsRemote(isRemote);
-            if (configuration.isEnableDeadlockDetection() && isRemote) {
+            if (configuration.isDeadlockDetectionEnabled() && isRemote) {
                DldGlobalTransaction gtx = (DldGlobalTransaction) lcc.getGlobalTransaction();
                RemoteTransaction transaction = txTable.getRemoteTransaction(gtx);
                if (transaction != null) {
