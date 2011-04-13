@@ -150,7 +150,7 @@ public class DistTxInterceptor extends TxInterceptor {
          dm.getTransactionLogger().afterCommand(ctx, command);
       }
    }
-
+   
    @Override
    public Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
       if (!dm.getTransactionLogger().beforeCommand(ctx, command)) {

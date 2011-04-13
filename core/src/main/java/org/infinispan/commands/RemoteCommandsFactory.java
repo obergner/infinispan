@@ -114,8 +114,8 @@ public class RemoteCommandsFactory {
             case PutKeyValueCommand.COMMAND_ID:
                command = new PutKeyValueCommand();
             break;
-         case PutKeyLargeObjectCommand.COMMAND_ID:
-            command = new PutKeyLargeObjectCommand();
+            case PutKeyLargeObjectCommand.COMMAND_ID:
+               command = new PutKeyLargeObjectCommand();
                break;
             case PutMapCommand.COMMAND_ID:
                command = new PutMapCommand();

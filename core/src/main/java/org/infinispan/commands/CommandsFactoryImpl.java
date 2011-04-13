@@ -149,7 +149,7 @@ public class CommandsFactoryImpl implements CommandsFactory {
    public PutKeyLargeObjectCommand buildPutKeyLargeObjectCommand(Object key, InputStream largeObject, long lifespanMillis, long maxIdleTimeMillis, Set<Flag> flags) {
       return new PutKeyLargeObjectCommand(key, largeObject, false, notifier, lifespanMillis, maxIdleTimeMillis, flags);
    }
-
+   
    public RemoveCommand buildRemoveCommand(Object key, Object value, Set<Flag> flags) {
       return new RemoveCommand(key, value, notifier, flags);
    }

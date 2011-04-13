@@ -240,7 +240,7 @@ public class CacheStoreInterceptor extends JmxStatsCommandInterceptor {
 
       return returnValue;
    }
-
+   
    @Override
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) throws Throwable {
       Object returnValue = invokeNextInterceptor(ctx, command);

@@ -185,7 +185,7 @@ public class MarshalledValueInterceptor extends CommandInterceptor {
             ((MarshalledValue) command.getKey()).setEqualityPreferenceForInstance(true);
       }
    }
-
+   
    @Override
    public Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
       MarshalledValue value = null;
