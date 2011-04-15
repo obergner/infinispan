@@ -21,6 +21,8 @@
  */
 package org.infinispan.largeobjectsupport;
 
+import org.infinispan.affinity.KeyGenerator;
+
 /**
  * <p>
  * A service responsible for handling {@link LargeObjectMetadata <code>LargeObjectMetadata</code>}.
@@ -68,4 +70,13 @@ public interface LargeObjectMetadataManager {
     *           {@link LargeObjectMetadata <code>LargeObjectMetadata</code>} to store
     */
    void storeLargeObjectMetadata(LargeObjectMetadata largeObjectMetadata);
+
+   /**
+    * Return a {@link KeyGenerator <code>KeyGenerator</code>} clients may use to generate keys for a
+    * large object's {@link Chunk <code>Chunk</code>}s.
+    * 
+    * @return A {@link KeyGenerator <code>KeyGenerator</code>} clients may use to generate keys for
+    *         a large object's {@link Chunk <code>Chunk</code>}s
+    */
+   KeyGenerator<Object> chunkKeyGenerator();
 }

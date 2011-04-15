@@ -21,51 +21,45 @@
  */
 package org.infinispan.largeobjectsupport;
 
+import java.io.Serializable;
+
 /**
  * <p>
- * Represents a single chunk/fragment of a <em>Large Object</em> to be stored in INFINISPAN. Since a
- * <em>Large Object</em> is defined as an object the size of which exceeds any given JVM's heap in
- * the cluster we cannot store it as is. Instead, we have to dissect it into smaller chunks, each of
- * which may be stored on a node in the cluster.
+ * Represents a {@link org.infinispan.largeobjectsupport.Chunk <code>Chunk</code>}'s metadata, i.e.
+ * its {@code key} and its {@code size}. In the future further metadata might be added.
  * </p>
  * 
  * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
  * @since 5.1
  */
-public class Chunk {
+public final class ChunkMetadata implements Serializable {
 
-   private final Object chunkKey;
+   /** The serialVersionUID */
+   private static final long serialVersionUID = -2869886534571482016L;
 
-   private final byte[] data;
+   private final Object key;
 
-   Chunk(Object chunkKey, byte[] data) {
-      this.chunkKey = chunkKey;
-      this.data = data;
+   private final long sizeInBytes;
+
+   ChunkMetadata(Object key, long sizeInBytes) {
+      this.key = key;
+      this.sizeInBytes = sizeInBytes;
    }
 
-   /**
-    * Get the chunkKey.
-    * 
-    * @return the chunkKey.
-    */
-   public final Object getChunkKey() {
-      return chunkKey;
+   public Object getKey() {
+      return key;
    }
 
-   /**
-    * Get the data.
-    * 
-    * @return the data.
-    */
-   public final byte[] getData() {
-      return data;
+   public long getSizeInBytes() {
+      return sizeInBytes;
    }
 
    @Override
    public int hashCode() {
       final int prime = 31;
       int result = 1;
-      result = prime * result + ((chunkKey == null) ? 0 : chunkKey.hashCode());
+      result = prime * result + ((key == null) ? 0 : key.hashCode());
+      result = prime * result + (int) (sizeInBytes ^ (sizeInBytes >>> 32));
       return result;
    }
 
@@ -74,15 +68,16 @@ public class Chunk {
       if (this == obj) return true;
       if (obj == null) return false;
       if (getClass() != obj.getClass()) return false;
-      Chunk other = (Chunk) obj;
-      if (chunkKey == null) {
-         if (other.chunkKey != null) return false;
-      } else if (!chunkKey.equals(other.chunkKey)) return false;
+      ChunkMetadata other = (ChunkMetadata) obj;
+      if (key == null) {
+         if (other.key != null) return false;
+      } else if (!key.equals(other.key)) return false;
+      if (sizeInBytes != other.sizeInBytes) return false;
       return true;
    }
 
    @Override
    public String toString() {
-      return "Chunk [chunkKey=" + chunkKey + ", data=" + data + "]";
+      return "ChunkMetadata [key=" + key + ", sizeInBytes=" + sizeInBytes + "]";
    }
 }
