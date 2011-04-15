@@ -1290,10 +1290,6 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
       return largeObjectSupport.largeObjectMetadataCacheName;
    }
    
-   public String getChunkKeyPrefix() {
-      return largeObjectSupport.chunkKeyPrefix;
-   }
-
    // ------------------------------------------------------------------------------------------------------------
    //   HELPERS
    // ------------------------------------------------------------------------------------------------------------
@@ -4036,9 +4032,6 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
       @ConfigurationDocRef(bean = Configuration.class, targetElement = "setLargeObjectMetadataCacheName")
       protected String largeObjectMetadataCacheName = DEFAULT_LARGEOBJECT_METADATA_CACHE;
       
-      @ConfigurationDocRef(bean = Configuration.class, targetElement = "setChunkKeyPrefix")
-      protected String chunkKeyPrefix = DEFAULT_CHUNK_KEY_PREFIX;
-
       public void accept(ConfigurationBeanVisitor v) {
          v.visitLargeObjectSupportType(this);
       }
@@ -4103,37 +4096,10 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
          return this;
       }
 
-      /**
-       * Get the prefix to be prepended to every generated {@code chunk key}.
-       * 
-       * @return The prefix to be prepended to every generated chunk key.
-       */
-      public String getChunkKeyPrefix() {
-         return chunkKeyPrefix;
-      }
-
-      /**
-       * Set the prefix to be prepended to every generated {@code chunk key}.
-       * 
-       * @param chunkKeyPrefix
-       *           The prefix to be prepended to every generated chunk key.
-       */
-      public void setChunkKeyPrefix(String chunkKeyPrefix) {
-         testImmutability("chunkKeyPrefix");
-         this.chunkKeyPrefix = chunkKeyPrefix;
-      }
-
-      @Override
-      public LargeObjectSupportConfig chunkKeyPrefix(String chunkKeyPrefix) {
-         setChunkKeyPrefix(chunkKeyPrefix);
-         return this;
-      }
-
       @Override
       public int hashCode() {
          final int prime = 31;
          int result = 1;
-         result = prime * result + ((chunkKeyPrefix == null) ? 0 : chunkKeyPrefix.hashCode());
          result = prime
                   * result
                   + ((largeObjectMetadataCacheName == null) ? 0 : largeObjectMetadataCacheName
@@ -4152,11 +4118,6 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
          if (getClass() != obj.getClass())
             return false;
          LargeObjectSupportType other = (LargeObjectSupportType) obj;
-         if (chunkKeyPrefix == null) {
-            if (other.chunkKeyPrefix != null)
-               return false;
-         } else if (!chunkKeyPrefix.equals(other.chunkKeyPrefix))
-            return false;
          if (largeObjectMetadataCacheName == null) {
             if (other.largeObjectMetadataCacheName != null)
                return false;

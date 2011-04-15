@@ -22,8 +22,10 @@
 package org.infinispan.largeobjectsupport;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Iterator;
+import java.util.List;
 
 /**
  * <p>
@@ -37,7 +39,11 @@ import java.util.Iterator;
  * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
  * @since 5.1
  */
-public class LargeObjectMetadata implements Serializable, Iterable<Object> {
+public class LargeObjectMetadata implements Serializable, Iterable<ChunkMetadata> {
+
+   public static final Builder newBuilder() {
+      return new Builder();
+   }
 
    /** The serialVersionUID */
    private static final long serialVersionUID = 1100258474820117922L;
@@ -48,19 +54,19 @@ public class LargeObjectMetadata implements Serializable, Iterable<Object> {
 
    private final long totalSizeInBytes;
 
-   private final Object[] chunkKeys;
+   private final ChunkMetadata[] chunkMetadata;
 
    public LargeObjectMetadata(Object largeObjectKey, long maximumChunkSizeInBytes,
-            long totalSizeInBytes, String[] chunkKeys) {
+            long totalSizeInBytes, ChunkMetadata[] chunkMetadata) {
       this.largeObjectKey = largeObjectKey;
       this.maximumChunkSizeInBytes = maximumChunkSizeInBytes;
       this.totalSizeInBytes = totalSizeInBytes;
-      this.chunkKeys = chunkKeys;
+      this.chunkMetadata = chunkMetadata;
    }
 
    @Override
-   public Iterator<Object> iterator() {
-      return Arrays.asList(chunkKeys).iterator();
+   public Iterator<ChunkMetadata> iterator() {
+      return Arrays.asList(chunkMetadata).iterator();
    }
 
    /**
@@ -91,12 +97,12 @@ public class LargeObjectMetadata implements Serializable, Iterable<Object> {
    }
 
    /**
-    * Get the chunkKeys.
+    * Get the chunkMetadata.
     * 
-    * @return the chunkKeys.
+    * @return the chunkMetadata.
     */
-   public final Object[] getChunkKeys() {
-      return chunkKeys;
+   public final ChunkMetadata[] getChunkMetadata() {
+      return chunkMetadata;
    }
 
    @Override
@@ -109,18 +115,13 @@ public class LargeObjectMetadata implements Serializable, Iterable<Object> {
 
    @Override
    public boolean equals(Object obj) {
-      if (this == obj)
-         return true;
-      if (obj == null)
-         return false;
-      if (getClass() != obj.getClass())
-         return false;
+      if (this == obj) return true;
+      if (obj == null) return false;
+      if (getClass() != obj.getClass()) return false;
       LargeObjectMetadata other = (LargeObjectMetadata) obj;
       if (largeObjectKey == null) {
-         if (other.largeObjectKey != null)
-            return false;
-      } else if (!largeObjectKey.equals(other.largeObjectKey))
-         return false;
+         if (other.largeObjectKey != null) return false;
+      } else if (!largeObjectKey.equals(other.largeObjectKey)) return false;
       return true;
    }
 
@@ -128,6 +129,64 @@ public class LargeObjectMetadata implements Serializable, Iterable<Object> {
    public String toString() {
       return "LargeObjectMetadata [largeObjectKey=" + largeObjectKey + ", maximumChunkSizeInBytes="
                + maximumChunkSizeInBytes + ", totalSizeInBytes=" + totalSizeInBytes
-               + ", chunkKeys=" + Arrays.toString(chunkKeys) + "]";
+               + ", chunkMetadata=" + Arrays.toString(chunkMetadata) + "]";
+   }
+
+   public static final class Builder {
+
+      private Object largeObjectKey;
+
+      private long totalSizeInBytes = 0L;
+
+      private long maxChunkSizeInBytes = 0L;
+
+      private final List<ChunkMetadata> chunkMetadata = new ArrayList<ChunkMetadata>();
+
+      private Builder() {
+         // Noop
+      }
+
+      public Builder withLargeObjectKey(Object largeObjectKey) {
+         if (largeObjectKey == null)
+            throw new IllegalArgumentException("Cannot accept null largeObjectKey");
+         if (this.largeObjectKey != null)
+            throw new IllegalStateException("largeObjectKey has already been set");
+         this.largeObjectKey = largeObjectKey;
+         return this;
+      }
+
+      public Builder withMaxChunkSizeInBytes(long maxChunkSizeInBytes) {
+         if (maxChunkSizeInBytes <= 0)
+            throw new IllegalArgumentException("Supplied maxChunkSizeInBytes ["
+                     + maxChunkSizeInBytes + "] is less than or equal to 0");
+         this.maxChunkSizeInBytes = maxChunkSizeInBytes;
+         return this;
+      }
+
+      public Builder addChunk(Object chunkKey, long sizeInBytes) {
+         if (chunkKey == null) throw new IllegalArgumentException("Cannot accept null chunkKey");
+         ChunkMetadata newChunkMetadata = new ChunkMetadata(chunkKey, sizeInBytes);
+         if (this.chunkMetadata.contains(newChunkMetadata))
+            throw new IllegalArgumentException("Illegal attempt to add ChunkMetadata ["
+                     + newChunkMetadata + "] twice");
+         this.totalSizeInBytes += sizeInBytes;
+         this.chunkMetadata.add(newChunkMetadata);
+         return this;
+      }
+
+      public LargeObjectMetadata build() {
+         LargeObjectMetadata product = new LargeObjectMetadata(this.largeObjectKey,
+                  this.maxChunkSizeInBytes, this.totalSizeInBytes,
+                  this.chunkMetadata.toArray(new ChunkMetadata[this.chunkMetadata.size()]));
+         reset();
+         return product;
+      }
+
+      private void reset() {
+         this.chunkMetadata.clear();
+         this.largeObjectKey = null;
+         this.maxChunkSizeInBytes = 0L;
+         this.totalSizeInBytes = 0L;
+      }
    }
 }

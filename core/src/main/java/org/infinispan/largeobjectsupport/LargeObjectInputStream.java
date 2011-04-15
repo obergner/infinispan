@@ -73,10 +73,9 @@ public class LargeObjectInputStream extends InputStream {
 
    @Override
    public int read() throws IOException {
-      if (numberOfBytesRead >= largeObjectMetadata.getTotalSizeInBytes())
-         return -1;
+      if (numberOfBytesRead >= largeObjectMetadata.getTotalSizeInBytes()) return -1;
       if (isFirstCallToRead() || shouldReadNextChunk()) {
-         currentChunk = nextChunk(largeObjectMetadata.getChunkKeys()[currentChunkKeyIndex++]);
+         currentChunk = nextChunk(largeObjectMetadata.getChunkMetadata()[currentChunkKeyIndex++]);
       }
       return currentChunk[(int) (numberOfBytesRead++ % largeObjectMetadata
                .getMaximumChunkSizeInBytes())];
@@ -86,8 +85,8 @@ public class LargeObjectInputStream extends InputStream {
       return currentChunk == null;
    }
 
-   private byte[] nextChunk(Object chunkKey) {
-      return byte[].class.cast(largeObjectCache.get(chunkKey));
+   private byte[] nextChunk(ChunkMetadata chunkMetadata) {
+      return byte[].class.cast(largeObjectCache.get(chunkMetadata.getKey()));
    }
 
    private boolean shouldReadNextChunk() {

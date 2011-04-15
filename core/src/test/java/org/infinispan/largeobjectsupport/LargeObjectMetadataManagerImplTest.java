@@ -29,8 +29,9 @@ public class LargeObjectMetadataManagerImplTest {
    @Test
    public void testThatAlreadyUsedByLargeObjectRecognizesThatAKeyIsAlreadyUsed() {
       Object largeObjectKey = new Object();
-      LargeObjectMetadata largeObjectMetadata = new LargeObjectMetadata(largeObjectKey, 1000L, 3L,
-               new String[0]);
+      LargeObjectMetadata largeObjectMetadata = LargeObjectMetadata.newBuilder()
+               .withLargeObjectKey(largeObjectKey).withMaxChunkSizeInBytes(1000L)
+               .addChunk(new Object(), 3L).build();
       ConcurrentMap<Object, LargeObjectMetadata> keyToLargeObjectMetadata = new ConcurrentHashMap<Object, LargeObjectMetadata>(
                1);
       keyToLargeObjectMetadata.put(largeObjectKey, largeObjectMetadata);
@@ -46,8 +47,9 @@ public class LargeObjectMetadataManagerImplTest {
    @Test
    public void testThatCorrespondingLargeObjectMetadataReturnsCorrectMetadata() {
       Object largeObjectKey = new Object();
-      LargeObjectMetadata largeObjectMetadata = new LargeObjectMetadata(largeObjectKey, 1000L, 3L,
-               new String[0]);
+      LargeObjectMetadata largeObjectMetadata = LargeObjectMetadata.newBuilder()
+               .withLargeObjectKey(largeObjectKey).withMaxChunkSizeInBytes(1000L)
+               .addChunk(new Object(), 3L).build();
       ConcurrentMap<Object, LargeObjectMetadata> keyToLargeObjectMetadata = new ConcurrentHashMap<Object, LargeObjectMetadata>(
                1);
       keyToLargeObjectMetadata.put(largeObjectKey, largeObjectMetadata);
@@ -63,8 +65,9 @@ public class LargeObjectMetadataManagerImplTest {
    @Test
    public void testThatStoreLargeObjectMetadataCorrectlyStoresMetadata() {
       Object largeObjectKey = new Object();
-      LargeObjectMetadata largeObjectMetadata = new LargeObjectMetadata(largeObjectKey, 1000L, 3L,
-               new String[0]);
+      LargeObjectMetadata largeObjectMetadata = LargeObjectMetadata.newBuilder()
+               .withLargeObjectKey(largeObjectKey).withMaxChunkSizeInBytes(1000L)
+               .addChunk(new Object(), 3L).build();
       ConcurrentMap<Object, LargeObjectMetadata> keyToLargeObjectMetadata = new ConcurrentHashMap<Object, LargeObjectMetadata>(
                1);
       keyToLargeObjectMetadata.put(largeObjectKey, largeObjectMetadata);
