@@ -803,15 +803,6 @@ public class FluentConfiguration extends AbstractFluentConfigurationBean {
        * @return this
        */
       LargeObjectSupportConfig largeObjecMetadataCacheName(String largeObjectMetadataCacheName);
-      
-      /**
-       * Sets the prefix to be prepended to each generated {@code chunk key}. If none is given this
-       * prefix defaults to {@link #DEFAULT_CHUNK_KEY_PREFIX}.
-       * 
-       * @param chunkKeyPrefix
-       * @return this
-       */
-      LargeObjectSupportConfig chunkKeyPrefix(String chunkKeyPrefix);
    }
 
 }

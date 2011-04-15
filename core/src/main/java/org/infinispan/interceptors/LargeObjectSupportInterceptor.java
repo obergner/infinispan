@@ -103,7 +103,9 @@ public class LargeObjectSupportInterceptor extends CommandInterceptor {
    private LargeObjectMetadata chunkAndStoreEachChunk(InvocationContext ctx,
             PutKeyLargeObjectCommand command) throws InterruptedException, Throwable {
       InputStream largeObject = InputStream.class.cast(command.getValue());
-      Chunks chunks = new Chunks(command.getKey(), largeObject, configuration);
+      Chunks chunks = new Chunks(command.getKey(), largeObject,
+               configuration.getMaximumChunkSizeInBytes(),
+               largeObjectMetadataManager.chunkKeyGenerator());
       for (Chunk chunk : chunks) {
          /*
           * We need to (1) remember the key-largeObject-pair currently stored in command, (2)

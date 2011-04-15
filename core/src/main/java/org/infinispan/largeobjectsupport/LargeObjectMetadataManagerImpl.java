@@ -25,6 +25,7 @@ import java.util.concurrent.ConcurrentMap;
 
 import net.jcip.annotations.ThreadSafe;
 
+import org.infinispan.affinity.KeyGenerator;
 import org.infinispan.manager.CacheContainer;
 
 /**
@@ -66,5 +67,10 @@ public class LargeObjectMetadataManagerImpl implements LargeObjectMetadataManage
 
    private ConcurrentMap<Object, LargeObjectMetadata> largeObjectKeyToMetadata() {
       return cacheContainer.getCache(largeObjectMetadataCacheName);
+   }
+
+   @Override
+   public KeyGenerator<Object> chunkKeyGenerator() {
+      return new UuidBasedKeyGenerator();
    }
 }

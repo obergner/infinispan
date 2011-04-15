@@ -24,15 +24,11 @@ package org.infinispan.largeobjectsupport;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 
 import net.jcip.annotations.NotThreadSafe;
 
 import org.infinispan.affinity.KeyGenerator;
-import org.infinispan.config.Configuration;
 
 /**
  * <p>
@@ -77,18 +73,22 @@ public class Chunks implements Iterable<Chunk> {
 
    private final long maxChunkSizeInBytes;
 
-   private final ChunkKeyProducer chunkKeyProducer;
+   private final KeyGenerator<Object> chunkKeyGenerator;
+
+   private final LargeObjectMetadata.Builder largeObjectMetadataBuilder = LargeObjectMetadata
+            .newBuilder();
 
    private long numberOfAlreadyReadBytes = 0L;
 
-   public Chunks(Object largeObjectKey, InputStream largeObject, Configuration configuration) {
+   public Chunks(Object largeObjectKey, InputStream largeObject, long maximumChunkSizeInBytes,
+            KeyGenerator<Object> chunkKeyGenerator) {
       if (!largeObject.markSupported())
          throw new IllegalArgumentException("The supplied LargeObject InputStream does not "
                   + "support mark(). This, however, is required.");
       this.largeObjectKey = largeObjectKey;
       this.largeObject = largeObject;
-      this.maxChunkSizeInBytes = configuration.getMaximumChunkSizeInBytes();
-      this.chunkKeyProducer = new ChunkKeyProducer(configuration.getChunkKeyPrefix());
+      this.maxChunkSizeInBytes = maximumChunkSizeInBytes;
+      this.chunkKeyGenerator = chunkKeyGenerator;
    }
 
    @Override
@@ -105,10 +105,9 @@ public class Chunks implements Iterable<Chunk> {
          throw new IllegalStateException(
                   "Cannot create LargeObjectMetadata: this Chunks object has "
                            + "not yet read all bytes from its LargeObject.");
-      List<String> allChunkKeys = chunkKeyProducer.chunkKeys();
 
-      return new LargeObjectMetadata(largeObjectKey, maxChunkSizeInBytes, numberOfAlreadyReadBytes,
-               allChunkKeys.toArray(new String[allChunkKeys.size()]));
+      return largeObjectMetadataBuilder.withLargeObjectKey(largeObjectKey)
+               .withMaxChunkSizeInBytes(maxChunkSizeInBytes).build();
    }
 
    private boolean allBytesRead() {
@@ -120,27 +119,6 @@ public class Chunks implements Iterable<Chunk> {
       } catch (IOException e) {
          throw new RuntimeException("Failed to read from/reset LargeObject InputStream: "
                   + e.getMessage(), e);
-      }
-   }
-
-   private final class ChunkKeyProducer {
-
-      private final List<String> alreadyProducedChunkKeys = new ArrayList<String>();
-
-      private final KeyGenerator<String> keyGenerator;
-
-      ChunkKeyProducer(String keyPrefix) {
-         this.keyGenerator = new PrefixingUuidBasedKeyGenerator(keyPrefix);
-      }
-
-      List<String> chunkKeys() {
-         return Collections.unmodifiableList(alreadyProducedChunkKeys);
-      }
-
-      String nextChunkKey() {
-         String nextKey = keyGenerator.getKey();
-         alreadyProducedChunkKeys.add(nextKey);
-         return nextKey;
       }
    }
 
@@ -170,7 +148,8 @@ public class Chunks implements Iterable<Chunk> {
                         : (int) (maxChunkSizeInBytes - chunkData.size());
             }
 
-            String chunkKey = chunkKeyProducer.nextChunkKey();
+            Object chunkKey = chunkKeyGenerator.getKey();
+            largeObjectMetadataBuilder.addChunk(chunkKey, chunkData.size());
 
             return new Chunk(chunkKey, chunkData.toByteArray());
          } catch (IOException e) {

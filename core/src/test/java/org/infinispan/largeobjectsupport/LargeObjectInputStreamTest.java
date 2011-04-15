@@ -22,8 +22,9 @@ public class LargeObjectInputStreamTest {
 
    @Test(expectedExceptions = IllegalArgumentException.class)
    public void largeObjectInputStreamConstructorShouldRejectMaxChunkSizeInBytesGreaterThanAllowed() {
-      LargeObjectMetadata illegalMetadata = new LargeObjectMetadata(new Object(), Long.MAX_VALUE,
-               10L, new String[0]);
+      LargeObjectMetadata illegalMetadata = LargeObjectMetadata.newBuilder()
+               .withLargeObjectKey(new Object()).withMaxChunkSizeInBytes(Long.MAX_VALUE)
+               .addChunk(new Object(), 0L).build();
       new LargeObjectInputStream(illegalMetadata, Collections.emptyMap());
    }
 
@@ -86,6 +87,9 @@ public class LargeObjectInputStreamTest {
       int currentSize = 0;
       byte[] largeObject = new byte[largeObjectSize];
       List<String> chunkKeys = new ArrayList<String>();
+      LargeObjectMetadata.Builder metadataBuilder = LargeObjectMetadata.newBuilder()
+               .withLargeObjectKey(UUID.randomUUID().toString())
+               .withMaxChunkSizeInBytes(maxChunkSize);
       do {
          int currentChunkSize = (largeObjectSize - currentSize < maxChunkSize) ? (int) (largeObjectSize - currentSize)
                   : maxChunkSize;
@@ -98,9 +102,9 @@ public class LargeObjectInputStreamTest {
          String currentChunkKey = UUID.randomUUID().toString();
          chunkKeys.add(currentChunkKey);
          chunkCache.put(currentChunkKey, currentChunk);
+         metadataBuilder.addChunk(currentChunkKey, currentChunkSize);
       } while (currentSize < largeObjectSize);
-      LargeObjectMetadata metadata = new LargeObjectMetadata(UUID.randomUUID().toString(),
-               maxChunkSize, largeObjectSize, chunkKeys.toArray(new String[0]));
+      LargeObjectMetadata metadata = metadataBuilder.build();
       return new TestData(chunkCache, metadata, largeObject);
    }
 

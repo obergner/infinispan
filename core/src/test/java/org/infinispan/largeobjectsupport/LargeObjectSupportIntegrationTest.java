@@ -75,7 +75,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       assert writtenMetadata.getTotalSizeInBytes() == bytes.length : "writeToKey(" + largeObjectKey
                + ", " + largeObject + ") wrote wrong large object metadata [" + writtenMetadata
                + "] - wrong total size in bytes";
-      assert writtenMetadata.getChunkKeys().length == 1 : "writeToKey(" + largeObjectKey + ", "
+      assert writtenMetadata.getChunkMetadata().length == 1 : "writeToKey(" + largeObjectKey + ", "
                + largeObject + ") wrote wrong large object metadata [" + writtenMetadata
                + "] - wrong number of chunk keys";
    }
@@ -90,8 +90,8 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       cache1.getAdvancedCache().writeToKey(largeObjectKey, largeObject);
 
       LargeObjectMetadata writtenMetadata = defaultLargeObjectMetadataCache().get(largeObjectKey);
-      Object chunkKey = writtenMetadata.getChunkKeys()[0];
-      byte[] chunk = (byte[]) cache1.get(chunkKey);
+      ChunkMetadata chunkMetadata = writtenMetadata.getChunkMetadata()[0];
+      byte[] chunk = (byte[]) cache1.get(chunkMetadata.getKey());
 
       assert chunk != null : "writeToKey(" + largeObjectKey + ", " + largeObject
                + ") did not store chunk";
@@ -111,9 +111,9 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       replListener(cache2).waitForRpc();
 
       LargeObjectMetadata writtenMetadata = defaultLargeObjectMetadataCache().get(largeObjectKey);
-      Object chunkKey = writtenMetadata.getChunkKeys()[0];
+      ChunkMetadata chunkMetadata = writtenMetadata.getChunkMetadata()[0];
 
-      byte[] chunk = (byte[]) cache2.get(chunkKey);
+      byte[] chunk = (byte[]) cache2.get(chunkMetadata.getKey());
 
       assert chunk != null : "writeToKey(" + largeObjectKey + ", " + largeObject
                + ") did not replicate chunks";

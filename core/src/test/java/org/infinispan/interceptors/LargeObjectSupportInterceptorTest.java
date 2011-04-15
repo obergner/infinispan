@@ -151,12 +151,14 @@ public class LargeObjectSupportInterceptorTest {
 
    private LargeObjectMetadataManager newLargeObjectMetadataManagerWithLargeObjectMetadataStored(
             Object largeObjectKey) {
-      LargeObjectMetadata largeObjectMetadata = new LargeObjectMetadata(largeObjectKey, 1000L, 3L,
-               new String[0]);
       ConcurrentMap<Object, LargeObjectMetadata> keyToLargeObjectMetadata = new ConcurrentHashMap<Object, LargeObjectMetadata>(
                1);
-      if (largeObjectKey != null)
+      if (largeObjectKey != null) {
+         LargeObjectMetadata largeObjectMetadata = LargeObjectMetadata.newBuilder()
+                  .withLargeObjectKey(largeObjectKey).withMaxChunkSizeInBytes(3L)
+                  .addChunk(new Object(), 3L).build();
          keyToLargeObjectMetadata.put(largeObjectMetadata.getLargeObjectKey(), largeObjectMetadata);
+      }
 
       return new LargeObjectMetadataManagerImpl(
                newCacheContainerWithLargeObjectMetadataCache(keyToLargeObjectMetadata),
