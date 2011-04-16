@@ -37,6 +37,7 @@ import org.infinispan.util.concurrent.locks.LockManager;
 import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAResource;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Collection;
 import java.util.List;
 
@@ -64,6 +65,23 @@ public interface AdvancedCache<K, V> extends Cache<K, V> {
     * @since 5.1
     */
    void writeToKey(K key, InputStream largeObject);
+   
+   /**
+    * <em>Large Object Support</em>: Take the key {@code key} and return an
+    * {@link java.io.OutputStream <code>OutputStream</code>} capable of storing a
+    * <em>Large Object</em>. Client code <strong>must</strong> call
+    * {@link java.io.OutputStream#flush() <code>flush</code>} on the {@code OutputStream} returned
+    * to complete storing a <em>Large Object</em>. A <em>Large Object</em> is defined as a value
+    * whose size may potentially exceed the heap size of any single JVM participating in an
+    * INFINISPAN cluster. Therefore, it cannot be stored in its entirety on a single node and needs
+    * to be split into chunks to be distributed across multiple nodes.
+    * 
+    * @param key
+    *           The {@code key} which to store the desired <em>Large Object</em> under
+    * @return An {@link java.io.OutputStream <code>OutputStream</code>} capable of storing a
+    *         <em>Large Object</em>
+    */
+   OutputStream writeToKey(K key);
    
    /**
     * <em>Large Object Support</em>: Take the key {@code key} and return an
