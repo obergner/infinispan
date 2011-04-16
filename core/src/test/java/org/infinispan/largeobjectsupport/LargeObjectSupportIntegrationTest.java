@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -162,6 +163,24 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
 
       assert Arrays.equals(bytes, readLargeObject) : "The large object written [" + bytes
                + "] differs from the large object read [" + readLargeObject + "]";
+   }
+
+   @Test
+   public void testThatWriteToKeyUsingOutputStreamCorrectlyStoresChunks() throws IOException {
+      String largeObjectKey = "testThatWriteToKeyUsingOutputStreamCorrectlyStoresChunks";
+      byte[] bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7 };
+
+      Cache<Object, Object> cache1 = cache(0, TEST_CACHE_NAME);
+      OutputStream largeObjectOutputStream = cache1.getAdvancedCache().writeToKey(largeObjectKey);
+      for (byte b : bytes)
+         largeObjectOutputStream.write(b);
+      largeObjectOutputStream.close();
+
+      LargeObjectMetadata writtenMetadata = defaultLargeObjectMetadataCache().get(largeObjectKey);
+      ChunkMetadata chunkMetadata = writtenMetadata.getChunkMetadata()[0];
+      byte[] chunk = (byte[]) cache1.get(chunkMetadata.getKey());
+
+      assert chunk != null : "writeToKey(" + largeObjectKey + ") did not store chunk";
    }
 
    private Cache<Object, LargeObjectMetadata> defaultLargeObjectMetadataCache() {
