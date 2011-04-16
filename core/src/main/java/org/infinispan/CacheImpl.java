@@ -55,6 +55,7 @@ import org.infinispan.interceptors.base.CommandInterceptor;
 import org.infinispan.jmx.annotations.MBean;
 import org.infinispan.jmx.annotations.ManagedAttribute;
 import org.infinispan.jmx.annotations.ManagedOperation;
+import org.infinispan.largeobjectsupport.LargeObjectOutputStream;
 import org.infinispan.largeobjectsupport.LargeObjectMetadataManager;
 import org.infinispan.largeobjectsupport.StreamingHandlerImpl;
 import org.infinispan.lifecycle.ComponentStatus;
@@ -89,7 +90,6 @@ import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAResource;
-import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -101,7 +101,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.infinispan.context.Flag.*;
 import static org.infinispan.factories.KnownComponentNames.*;
 
@@ -727,25 +726,6 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
       return this;
    }
    
-   @Override
-   public void writeToKey(K key, InputStream largeObject) {
-      assertKeyNotNull(key);
-      // TODO: Change to false as soon as we support transactions
-      InvocationContext ctx = getInvocationContext(true);
-      PutKeyValueCommand command = commandsFactory.buildPutKeyValueCommand(key, largeObject,
-               MILLISECONDS.toMillis(defaultLifespan), MILLISECONDS.toMillis(defaultMaxIdleTime),
-               ctx.getFlags());
-      // Mark this command as pertaining to a large object
-      command.setPutLargeObject(true);
-      invoker.invoke(ctx, command);
-   }
-   
-   @Override
-   public InputStream readFromKey(K key) {
-      assertKeyNotNull(key);
-      return null;
-   }
-
    public void compact() {
       for (InternalCacheEntry e : dataContainer) {
          if (e.getKey() instanceof MarshalledValue) {

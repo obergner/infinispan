@@ -63,16 +63,6 @@ public abstract class AbstractDelegatingAdvancedCache<K, V> extends AbstractDele
    }
    
    @Override
-   public void writeToKey(K key, InputStream largeObject) {
-      cache.writeToKey(key, largeObject);
-   }
-   
-   @Override
-   public InputStream readFromKey(K key) {
-      return cache.readFromKey(key);
-   }
-
-   @Override
    public void addInterceptor(CommandInterceptor i, int position) {
       cache.addInterceptor(i, position);
    }
