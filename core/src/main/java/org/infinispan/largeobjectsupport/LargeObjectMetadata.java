@@ -164,12 +164,16 @@ public class LargeObjectMetadata implements Serializable, Iterable<ChunkMetadata
       }
 
       public Builder addChunk(Object chunkKey, long sizeInBytes) {
-         if (chunkKey == null) throw new IllegalArgumentException("Cannot accept null chunkKey");
-         ChunkMetadata newChunkMetadata = new ChunkMetadata(chunkKey, sizeInBytes);
+         return addChunkMetadata(new ChunkMetadata(chunkKey, sizeInBytes));
+      }
+
+      public Builder addChunkMetadata(ChunkMetadata newChunkMetadata) {
+         if (chunkMetadata == null)
+            throw new IllegalArgumentException("Cannot accept null chunkKey");
          if (this.chunkMetadata.contains(newChunkMetadata))
             throw new IllegalArgumentException("Illegal attempt to add ChunkMetadata ["
                      + newChunkMetadata + "] twice");
-         this.totalSizeInBytes += sizeInBytes;
+         this.totalSizeInBytes += newChunkMetadata.getSizeInBytes();
          this.chunkMetadata.add(newChunkMetadata);
          return this;
       }
