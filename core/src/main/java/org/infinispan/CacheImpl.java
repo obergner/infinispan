@@ -44,6 +44,7 @@ import org.infinispan.container.entries.InternalCacheEntry;
 import org.infinispan.context.Flag;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.context.InvocationContextContainer;
+import org.infinispan.context.PreInvocationContext;
 import org.infinispan.distribution.DistributionManager;
 import org.infinispan.eviction.EvictionManager;
 import org.infinispan.factories.ComponentRegistry;
@@ -581,6 +582,7 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
          return (NotifyingFuture<X>) retval;
       } else {
          return new AbstractInProcessNotifyingFuture<X>() {
+            @SuppressWarnings("unchecked")
             public X get() throws InterruptedException, ExecutionException {
                return (X) retval;
             }
