@@ -65,7 +65,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       InputStream largeObject = new ByteArrayInputStream(bytes);
 
       Cache<Object, Object> cache1 = cache(0, TEST_CACHE_NAME);
-      cache1.getAdvancedCache().writeToKey(largeObjectKey, largeObject);
+      cache1.getStreamingHandler().writeToKey(largeObjectKey, largeObject);
 
       LargeObjectMetadata writtenMetadata = defaultLargeObjectMetadataCache().get(largeObjectKey);
       assert writtenMetadata != null : "writeToKey(" + largeObjectKey + ", " + largeObject
@@ -88,7 +88,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       InputStream largeObject = new ByteArrayInputStream(bytes);
 
       Cache<Object, Object> cache1 = cache(0, TEST_CACHE_NAME);
-      cache1.getAdvancedCache().writeToKey(largeObjectKey, largeObject);
+      cache1.getStreamingHandler().writeToKey(largeObjectKey, largeObject);
 
       LargeObjectMetadata writtenMetadata = defaultLargeObjectMetadataCache().get(largeObjectKey);
       ChunkMetadata chunkMetadata = writtenMetadata.getChunkMetadata()[0];
@@ -108,7 +108,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       Cache<Object, Object> cache2 = cache(1, TEST_CACHE_NAME);
 
       replListener(cache2).expect(PutKeyLargeObjectCommand.class);
-      cache1.getAdvancedCache().writeToKey(largeObjectKey, largeObject);
+      cache1.getStreamingHandler().writeToKey(largeObjectKey, largeObject);
       replListener(cache2).waitForRpc();
 
       LargeObjectMetadata writtenMetadata = defaultLargeObjectMetadataCache().get(largeObjectKey);
@@ -127,9 +127,9 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       InputStream largeObject = new ByteArrayInputStream(bytes);
 
       Cache<Object, Object> cache1 = cache(0, TEST_CACHE_NAME);
-      cache1.getAdvancedCache().writeToKey(largeObjectKey, largeObject);
+      cache1.getStreamingHandler().writeToKey(largeObjectKey, largeObject);
 
-      InputStream largeObjectInputStream = cache1.getAdvancedCache().readFromKey(largeObjectKey);
+      InputStream largeObjectInputStream = cache1.getStreamingHandler().readFromKey(largeObjectKey);
 
       assert largeObjectInputStream != null : "readFromKey(" + largeObjectKey
                + ") returned null for a key just written";
@@ -149,10 +149,10 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       Cache<Object, Object> largeObjectCache2 = cache(1, TEST_CACHE_NAME);
 
       replListener(largeObjectCache2).expect(PutKeyLargeObjectCommand.class);
-      largeObjectCache1.getAdvancedCache().writeToKey(largeObjectKey, largeObject);
+      largeObjectCache1.getStreamingHandler().writeToKey(largeObjectKey, largeObject);
       replListener(largeObjectCache2).waitForRpc();
 
-      InputStream largeObjectInputStream = largeObjectCache2.getAdvancedCache().readFromKey(
+      InputStream largeObjectInputStream = largeObjectCache2.getStreamingHandler().readFromKey(
                largeObjectKey);
       byte[] readLargeObject = readLargeObjectFrom(largeObjectInputStream);
       largeObjectInputStream.close();
@@ -171,7 +171,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       byte[] bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7 };
 
       Cache<Object, Object> cache1 = cache(0, TEST_CACHE_NAME);
-      OutputStream largeObjectOutputStream = cache1.getAdvancedCache().writeToKey(largeObjectKey);
+      OutputStream largeObjectOutputStream = cache1.getStreamingHandler().writeToKey(largeObjectKey);
       for (byte b : bytes)
          largeObjectOutputStream.write(b);
       largeObjectOutputStream.close();
