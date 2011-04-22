@@ -12,6 +12,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
+import org.infinispan.StreamingHandler;
 import org.infinispan.config.Configuration;
 import org.infinispan.config.FluentConfiguration;
 import org.infinispan.lifecycle.ComponentStatus;
@@ -446,6 +447,11 @@ public class LargeObjectOutputStreamTest {
       @Override
       public Set<java.util.Map.Entry<Object, LargeObjectMetadata>> entrySet() {
          throw new org.jboss.util.NotImplementedException("FIXME NYI entrySet");
+      }
+
+      @Override
+      public StreamingHandler<Object> getStreamingHandler() {
+         throw new org.jboss.util.NotImplementedException("FIXME NYI getStreamingHandler");
       }
    }
 }

@@ -94,7 +94,7 @@ public class DistCacheStoreInterceptor extends CacheStoreInterceptor {
       if (skip(ctx, key) || ctx.isInTxScope() || !command.isSuccessful()) return returnValue;
       InternalCacheEntry se = getStoredEntry(key, ctx);
       store.store(se);
-      log.trace("Stored entry %s under key %s", se, key);
+      log.tracef("Stored entry %s under key %s", se, key);
       if (getStatisticsEnabled()) cacheStores.incrementAndGet();
       return returnValue;
    }

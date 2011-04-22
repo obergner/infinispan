@@ -222,7 +222,7 @@ public class CacheStoreInterceptor extends JmxStatsCommandInterceptor {
       Object key = command.getKey();
       InternalCacheEntry se = getStoredEntry(key, ctx);
       store.store(se);
-      if (trace) log.trace("Stored entry %s under key %s", se, key);
+      if (trace) log.tracef("Stored entry %s under key %s", se, key);
       if (getStatisticsEnabled()) cacheStores.incrementAndGet();
 
       return returnValue;

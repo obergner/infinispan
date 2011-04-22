@@ -100,7 +100,7 @@ public class IsMarshallableInterceptor extends CommandInterceptor {
     */
    @Override
    public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
-      if (isLazyDeserialization() || isClusterInvocation(ctx) || isStoreInvocation(ctx))
+      if (isStoreAsBinary() || isClusterInvocation(ctx) || isStoreInvocation(ctx))
          checkMarshallable(command.getKey(), command.getValue());
       return super.visitPutKeyValueCommand(ctx, command);
    }
