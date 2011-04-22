@@ -32,7 +32,6 @@ import org.infinispan.commands.read.SizeCommand;
 import org.infinispan.commands.read.ValuesCommand;
 import org.infinispan.commands.write.ClearCommand;
 import org.infinispan.commands.write.EvictCommand;
-import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
@@ -45,6 +44,7 @@ import org.infinispan.container.entries.InternalCacheEntry;
 import org.infinispan.context.Flag;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.context.InvocationContextContainer;
+import org.infinispan.context.PreInvocationContext;
 import org.infinispan.distribution.DistributionManager;
 import org.infinispan.eviction.EvictionManager;
 import org.infinispan.factories.ComponentRegistry;
@@ -56,10 +56,8 @@ import org.infinispan.interceptors.base.CommandInterceptor;
 import org.infinispan.jmx.annotations.MBean;
 import org.infinispan.jmx.annotations.ManagedAttribute;
 import org.infinispan.jmx.annotations.ManagedOperation;
-import org.infinispan.largeobjectsupport.LargeObjectInputStream;
-import org.infinispan.largeobjectsupport.LargeObjectMetadata;
 import org.infinispan.largeobjectsupport.LargeObjectMetadataManager;
-import org.infinispan.largeobjectsupport.LargeObjectOutputStream;
+import org.infinispan.largeobjectsupport.StreamingHandlerImpl;
 import org.infinispan.lifecycle.ComponentStatus;
 import org.infinispan.manager.CacheContainer;
 import org.infinispan.manager.EmbeddedCacheManager;
@@ -92,8 +90,6 @@ import javax.transaction.SystemException;
 import javax.transaction.Transaction;
 import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAResource;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.EnumSet;
@@ -105,7 +101,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
-import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.infinispan.context.Flag.*;
 import static org.infinispan.factories.KnownComponentNames.*;
 
@@ -143,7 +138,7 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    private LockManager lockManager;
    private DistributionManager distributionManager;
    private ExecutorService asyncExecutor;
-   private LargeObjectMetadataManager largeObjectMetadataManager;
+   private StreamingHandler<K> streamingHandler;
    private TransactionTable txTable;
    private RecoveryManager recoveryManager;
    private TransactionCoordinator txCoordinator;
@@ -159,9 +154,8 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    }
 
    @Inject
-   public void injectDependencies(
-            EvictionManager evictionManager,
-            InvocationContextContainer icc,
+   public void injectDependencies(EvictionManager evictionManager,
+                                  InvocationContextContainer icc,
                                   CommandsFactory commandsFactory,
                                   InterceptorChain interceptorChain,
                                   Configuration configuration,
@@ -194,7 +188,9 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
       this.icc = icc;
       this.distributionManager = distributionManager;
       this.asyncExecutor = asyncExecutor;
-      this.largeObjectMetadataManager = largeObjectMetadataManager;
+      this.streamingHandler = new StreamingHandlerImpl<K>(invoker, commandsFactory,
+               largeObjectMetadataManager, defaultLifespan, defaultMaxIdleTime, icc, configuration,
+               this);
       this.txTable = txTable;
       this.recoveryManager = recoveryManager;
       this.txCoordinator = txCoordinator;
@@ -353,7 +349,7 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
 
    private InvocationContext setInvocationContextFlags(InvocationContext ctx) {
       PreInvocationContext pic = flagHolder.get();
-      if (!pic.flags.isEmpty()) {
+      if (pic.flags.isEmpty()) {
          ctx.setFlags(pic.flags);
       }
 
@@ -730,31 +726,10 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    public AdvancedCache<K, V> getAdvancedCache() {
       return this;
    }
-
-   @Override
-   public void writeToKey(K key, InputStream largeObject) {
-      assertKeyNotNull(key);
-      InvocationContext ctx = getInvocationContext(false);
-      PutKeyLargeObjectCommand command = commandsFactory.buildPutKeyLargeObjectCommand(key, largeObject,
-               MILLISECONDS.toMillis(defaultLifespan), MILLISECONDS.toMillis(defaultMaxIdleTime),
-               ctx.getFlags());
-      invoker.invoke(ctx, command);
-   }
    
    @Override
-   public OutputStream writeToKey(K key) {
-      assertKeyNotNull(key);
-      return new LargeObjectOutputStream(key, (Cache<Object, Object>) this,
-               largeObjectMetadataManager.chunkKeyGenerator(), getConfiguration()
-                        .getMaximumChunkSizeInBytes(), largeObjectMetadataManager);
-   }
-
-   @Override
-   public InputStream readFromKey(K key) {
-      assertKeyNotNull(key);
-      LargeObjectMetadata largeObjectMetadata = largeObjectMetadataManager.correspondingLargeObjectMetadata(key);
-      if (largeObjectMetadata == null) return null;
-      return new LargeObjectInputStream(largeObjectMetadata, this);
+   public StreamingHandler<K> getStreamingHandler() {
+      return streamingHandler;
    }
 
    public void compact() {
@@ -825,7 +800,7 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    @Override
    protected void set(K key, V value) {
       withFlags(Flag.SKIP_REMOTE_LOOKUP, Flag.SKIP_CACHE_LOAD)
-         .put(key, value, defaultLifespan, MILLISECONDS, defaultMaxIdleTime, MILLISECONDS);
+         .put(key, value, defaultLifespan, TimeUnit.MILLISECONDS, defaultMaxIdleTime, TimeUnit.MILLISECONDS);
    }
 
 }

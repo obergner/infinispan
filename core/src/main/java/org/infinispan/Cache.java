@@ -610,4 +610,15 @@ public interface Cache<K, V> extends ConcurrentMap<K, V>, Lifecycle, Listenable 
     * @return a set view of the mappings contained in this cache.
     */
    Set<Map.Entry<K, V>> entrySet();
+   
+   /**
+    * Return a {@link StreamingHandler <code>StreamingHandler</code>} for working with
+    * <em>Large Objects</em>, i.e. objects that are too big to easily (or even at all) fit into a
+    * single node's memory. For storing, deleting and retrieving <em>Large Objects</em> the
+    * {@code StreamingHandler} returned will delegate to this <code>Cache</code>.
+    * 
+    * @return A {@link StreamingHandler <code>StreamingHandler</code>} for working with
+    *         <em>Large Objects</em>
+    */
+   StreamingHandler<K> getStreamingHandler();
 }

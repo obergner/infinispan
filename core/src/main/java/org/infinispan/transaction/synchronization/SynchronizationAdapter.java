@@ -78,7 +78,7 @@ public class SynchronizationAdapter implements Synchronization {
          try {
             txCoordinator.rollback(localTransaction);
          } catch (XAException e) {
-            throw new CacheException("Could not commit.", e);
+            throw new CacheException("Could not rollback.", e);
          }
       } else {
          throw new IllegalArgumentException("Unknown status: " + status);
