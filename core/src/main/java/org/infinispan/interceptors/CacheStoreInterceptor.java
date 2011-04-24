@@ -203,7 +203,7 @@ public class CacheStoreInterceptor extends JmxStatsCommandInterceptor {
       }
       return retval;
    }
-
+   
    @Override
    public Object visitClearCommand(InvocationContext ctx, ClearCommand command) throws Throwable {
       if (!skip(ctx, command) && !ctx.isInTxScope()) {

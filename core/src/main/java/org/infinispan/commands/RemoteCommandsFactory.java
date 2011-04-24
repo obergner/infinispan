@@ -122,9 +122,9 @@ public class RemoteCommandsFactory {
                break;
             case RemoveCommand.COMMAND_ID:
                command = new RemoveCommand();
-            break;
-         case RemoveLargeObjectCommand.COMMAND_ID:
-            command = new RemoveLargeObjectCommand();
+               break;
+            case RemoveLargeObjectCommand.COMMAND_ID:
+               command = new RemoveLargeObjectCommand();
                break;
             case ReplaceCommand.COMMAND_ID:
                command = new ReplaceCommand();

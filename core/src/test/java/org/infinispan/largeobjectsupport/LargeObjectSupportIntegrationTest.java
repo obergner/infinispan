@@ -171,7 +171,8 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       byte[] bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7 };
 
       Cache<Object, Object> cache1 = cache(0, TEST_CACHE_NAME);
-      OutputStream largeObjectOutputStream = cache1.getStreamingHandler().writeToKey(largeObjectKey);
+      OutputStream largeObjectOutputStream = cache1.getStreamingHandler()
+               .writeToKey(largeObjectKey);
       for (byte b : bytes)
          largeObjectOutputStream.write(b);
       largeObjectOutputStream.close();
@@ -181,6 +182,41 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       byte[] chunk = (byte[]) cache1.get(chunkMetadata.getKey());
 
       assert chunk != null : "writeToKey(" + largeObjectKey + ") did not store chunk";
+   }
+
+   @Test
+   public void testThatRemoveLargeObjectRemovesLargeObject() {
+      String largeObjectKey = "testThatRemoveLargeObjectRemovesLargeObject";
+      byte[] bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7 };
+      InputStream largeObject = new ByteArrayInputStream(bytes);
+
+      Cache<Object, Object> cache1 = cache(0, TEST_CACHE_NAME);
+      cache1.getStreamingHandler().writeToKey(largeObjectKey, largeObject);
+      assert cache1.getStreamingHandler().readFromKey(largeObjectKey) != null : "Preconditition violated: writeToKey() didn't store large object";
+
+      boolean wasRemoved = cache1.getStreamingHandler().removeKey(largeObjectKey);
+
+      assert wasRemoved : "removeKey(" + largeObjectKey
+               + ") did return true for previously stored large object";
+      assert cache1.getStreamingHandler().readFromKey(largeObjectKey) == null : "removeKey("
+               + largeObjectKey + ") did not remove large object from cache";
+   }
+
+   @Test
+   public void testThatRemoveLargeObjectRemovesLargeObjectFromReplicationCache() {
+      String largeObjectKey = "testThatRemoveLargeObjectRemovesLargeObject";
+      byte[] bytes = new byte[] { 1, 2, 3, 4, 5, 6, 7 };
+      InputStream largeObject = new ByteArrayInputStream(bytes);
+
+      Cache<Object, Object> cache1 = cache(0, TEST_CACHE_NAME);
+      cache1.getStreamingHandler().writeToKey(largeObjectKey, largeObject);
+      Cache<Object, Object> cache2 = cache(1, TEST_CACHE_NAME);
+      assert cache2.getStreamingHandler().readFromKey(largeObjectKey) != null : "Preconditition violated: writeToKey() didn't store large object in replication cache";
+
+      cache1.getStreamingHandler().removeKey(largeObjectKey);
+
+      assert cache2.getStreamingHandler().readFromKey(largeObjectKey) == null : "removeKey("
+               + largeObjectKey + ") did not remove large object from replication cache";
    }
 
    private Cache<Object, LargeObjectMetadata> defaultLargeObjectMetadataCache() {
