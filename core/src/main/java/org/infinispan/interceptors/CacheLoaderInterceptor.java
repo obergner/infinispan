@@ -29,6 +29,7 @@ import org.infinispan.commands.write.InvalidateCommand;
 import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.container.DataContainer;
 import org.infinispan.container.EntryFactory;
@@ -115,6 +116,15 @@ public class CacheLoaderInterceptor extends JmxStatsCommandInterceptor {
 
    @Override
    public Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
+      Object key;
+      if ((key = command.getKey()) != null) {
+         loadIfNeededAndUpdateStats(ctx, key);
+      }
+      return invokeNextInterceptor(ctx, command);
+   }
+   
+   @Override
+   public Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable {
       Object key;
       if ((key = command.getKey()) != null) {
          loadIfNeededAndUpdateStats(ctx, key);

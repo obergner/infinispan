@@ -28,6 +28,7 @@ import org.infinispan.commands.tx.PrepareCommand;
 import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.context.impl.TxInvocationContext;
@@ -72,6 +73,11 @@ public class DeadlockDetectingInterceptor extends CommandInterceptor {
 
    @Override
    public Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
+      return handleDataCommand(ctx, command);
+   }
+   
+   @Override
+   public Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable {
       return handleDataCommand(ctx, command);
    }
 

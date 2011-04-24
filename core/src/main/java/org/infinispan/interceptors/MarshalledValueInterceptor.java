@@ -22,7 +22,7 @@
  */
 package org.infinispan.interceptors;
 
-import org.infinispan.commands.control.LockControlCommand;
+import org.infinispan.commands.control.LockControlCommand;	
 import org.infinispan.commands.read.EntrySetCommand;
 import org.infinispan.commands.read.GetKeyValueCommand;
 import org.infinispan.commands.read.KeySetCommand;
@@ -32,6 +32,7 @@ import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.container.entries.InternalCacheEntry;
 import org.infinispan.container.entries.InternalEntryFactory;
@@ -171,6 +172,18 @@ public class MarshalledValueInterceptor extends CommandInterceptor {
 
    @Override
    public Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
+      MarshalledValue value = null;
+      if (!isTypeExcluded(command.getKey().getClass())) {
+         value = createMarshalledValue(command.getKey(), ctx);
+         command.setKey(value);
+      }
+      Object retVal = invokeNextInterceptor(ctx, command);
+      compact(value);
+      return processRetVal(retVal, ctx);
+   }
+
+   @Override
+   public Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable {
       MarshalledValue value = null;
       if (!isTypeExcluded(command.getKey().getClass())) {
          value = createMarshalledValue(command.getKey(), ctx);

@@ -22,7 +22,7 @@
  */
 package org.infinispan.interceptors;
 
-import org.infinispan.commands.AbstractVisitor;
+import org.infinispan.commands.AbstractVisitor;	
 import org.infinispan.commands.CommandsFactory;
 import org.infinispan.commands.VisitableCommand;
 import org.infinispan.commands.tx.PrepareCommand;
@@ -32,6 +32,7 @@ import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.commands.write.WriteCommand;
 import org.infinispan.context.Flag;
@@ -118,6 +119,11 @@ public class InvalidationInterceptor extends BaseRpcInterceptor {
    public Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
       return handleInvalidate(ctx, command, command.getKey());
    }
+   
+   @Override
+   public Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable {
+      return handleInvalidate(ctx, command, command.getKey());
+   }
 
    @Override
    public Object visitClearCommand(InvocationContext ctx, ClearCommand command) throws Throwable {
@@ -200,6 +206,12 @@ public class InvalidationInterceptor extends BaseRpcInterceptor {
 
       @Override
       public Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
+         result.add(command.getKey());
+         return null;
+      }
+
+      @Override
+      public Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable {
          result.add(command.getKey());
          return null;
       }

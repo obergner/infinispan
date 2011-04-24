@@ -23,12 +23,13 @@
 
 package org.infinispan.interceptors;
 
-import org.infinispan.commands.control.LockControlCommand;
+import org.infinispan.commands.control.LockControlCommand;	
 import org.infinispan.commands.read.GetKeyValueCommand;
 import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.context.Flag;
 import org.infinispan.context.InvocationContext;
@@ -93,7 +94,7 @@ public class IsMarshallableInterceptor extends CommandInterceptor {
     */
    @Override
    public Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable {
-      if (isLazyDeserialization() || isClusterInvocation(ctx) || isStoreInvocation(ctx))
+      if (isStoreAsBinary() || isClusterInvocation(ctx) || isStoreInvocation(ctx))
          checkMarshallable(command.getKey(), command.getValue());
       return super.visitPutKeyValueCommand(ctx, command);
    }
@@ -106,10 +107,10 @@ public class IsMarshallableInterceptor extends CommandInterceptor {
    }
 
    @Override
-   public Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
+   public Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable {
       if (isStoreAsBinary() || isClusterInvocation(ctx) || isStoreInvocation(ctx))
          checkMarshallable(command.getKey());
-      return super.visitRemoveCommand(ctx, command);
+      return super.visitRemoveLargeObjectCommand(ctx, command);
    }
 
    @Override

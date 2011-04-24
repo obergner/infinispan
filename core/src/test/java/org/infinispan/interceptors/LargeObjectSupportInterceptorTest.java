@@ -17,6 +17,7 @@ import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
 import org.infinispan.StreamingHandler;
 import org.infinispan.commands.write.PutKeyLargeObjectCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.config.Configuration;
 import org.infinispan.config.FluentConfiguration;
 import org.infinispan.container.entries.CacheEntry;
@@ -26,6 +27,7 @@ import org.infinispan.context.InvocationContext;
 import org.infinispan.context.impl.LocalTxInvocationContext;
 import org.infinispan.context.impl.NonTxInvocationContext;
 import org.infinispan.interceptors.base.CommandInterceptor;
+import org.infinispan.largeobjectsupport.ChunkMetadata;
 import org.infinispan.largeobjectsupport.LargeObjectMetadata;
 import org.infinispan.largeobjectsupport.LargeObjectMetadataManager;
 import org.infinispan.largeobjectsupport.LargeObjectMetadataManagerImpl;
@@ -45,11 +47,11 @@ import org.testng.annotations.Test;
 public class LargeObjectSupportInterceptorTest {
 
    @Test(expectedExceptions = IllegalStateException.class)
-   public void testThatLargeObjectChunkingInterceptorRejectsTransactionalInvocationContext()
+   public void testThatVisitPutKeyLargeObjectCommandRejectsTransactionalInvocationContext()
             throws Throwable {
       LargeObjectSupportInterceptor objectUnderTest = new LargeObjectSupportInterceptor();
       objectUnderTest.init(newConfigurationWithMaxChunkSize(3L),
-               newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
+               newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object(), null));
 
       LocalTxInvocationContext txCtx = new LocalTxInvocationContext() {
          @Override
@@ -71,11 +73,11 @@ public class LargeObjectSupportInterceptorTest {
    }
 
    @Test
-   public void testThatLargeObjectChunkingInterceptorCorrectlyCallsInterceptorPipelineForEachChunk()
+   public void testThatVisitPutKeyLargeObjectCommandCorrectlyCallsInterceptorPipelineForEachChunk()
             throws Throwable {
       LargeObjectSupportInterceptor objectUnderTest = new LargeObjectSupportInterceptor();
       objectUnderTest.init(newConfigurationWithMaxChunkSize(3L),
-               newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object()));
+               newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object(), null));
 
       final List<byte[]> receivedChunkData = new ArrayList<byte[]>();
       CommandInterceptor recordingCommandInterceptor = new CommandInterceptor() {
@@ -111,10 +113,11 @@ public class LargeObjectSupportInterceptorTest {
    }
 
    @Test
-   public void testThatLargeObjectSupportInterceptorSkipsCorrectlyStoresLargeObjectMetadata()
+   public void testThatVisitPutKeyLargeObjectCommandCorrectlyStoresLargeObjectMetadata()
             throws Throwable {
       LargeObjectSupportInterceptor objectUnderTest = new LargeObjectSupportInterceptor();
-      LargeObjectMetadataManager largeObjectMetadataManager = newLargeObjectMetadataManagerWithLargeObjectMetadataStored(null);
+      LargeObjectMetadataManager largeObjectMetadataManager = newLargeObjectMetadataManagerWithLargeObjectMetadataStored(
+               null, null);
       objectUnderTest.init(newConfigurationWithMaxChunkSize(3L), largeObjectMetadataManager);
 
       CommandInterceptor noopCommandInterceptor = new CommandInterceptor() {
@@ -141,6 +144,97 @@ public class LargeObjectSupportInterceptorTest {
       assert largeObjectMetadataManager.alreadyUsedByLargeObject(largeObjectKey) : "LargeObjectSupportInterceptor did NOT store Large Object's metadata";
    }
 
+   @Test(expectedExceptions = IllegalStateException.class)
+   public void testThatVisitRemoveLargeObjectCommandRejectsTransactionalInvocationContext()
+            throws Throwable {
+      LargeObjectSupportInterceptor objectUnderTest = new LargeObjectSupportInterceptor();
+      objectUnderTest.init(newConfigurationWithMaxChunkSize(3L),
+               newLargeObjectMetadataManagerWithLargeObjectMetadataStored(new Object(), null));
+
+      LocalTxInvocationContext txCtx = new LocalTxInvocationContext() {
+         @Override
+         public void putLookedUpEntry(Object key, CacheEntry e) {
+            // Ignore
+         }
+      };
+
+      Object largeObjectKey = new Object();
+
+      RemoveLargeObjectCommand writeLargeObjectCommand = new RemoveLargeObjectCommand(
+               largeObjectKey, null, Collections.<Flag> emptySet());
+
+      objectUnderTest.visitRemoveLargeObjectCommand(txCtx, writeLargeObjectCommand);
+   }
+
+   @Test
+   public void testThatVisitRemoveLargeObjectCommandCorrectlyCallsInterceptorPipelineForEachChunk()
+            throws Throwable {
+      LargeObjectMetadata largeObjectMetadata = newTestLargeObjectMetadata();
+      List<Object> expectedChunkKeys = new ArrayList<Object>();
+      for (ChunkMetadata chunkMetadata : largeObjectMetadata)
+         expectedChunkKeys.add(chunkMetadata.getKey());
+
+      LargeObjectSupportInterceptor objectUnderTest = new LargeObjectSupportInterceptor();
+      objectUnderTest.init(
+               newConfigurationWithMaxChunkSize(3L),
+               newLargeObjectMetadataManagerWithLargeObjectMetadataStored(
+                        largeObjectMetadata.getLargeObjectKey(), largeObjectMetadata));
+
+      final List<Object> receivedChunkKeys = new ArrayList<Object>();
+      CommandInterceptor recordingCommandInterceptor = new CommandInterceptor() {
+         @Override
+         public Object visitRemoveLargeObjectCommand(InvocationContext ctx,
+                  RemoveLargeObjectCommand command) throws Throwable {
+            assert command.getKey() != null : "LargeObjectSupportInterceptor did not store "
+                     + "any value in PutKeyValueCommand";
+            receivedChunkKeys.add(command.getKey());
+
+            return null;
+         }
+      };
+      objectUnderTest.setNext(recordingCommandInterceptor);
+
+       InvocationContext ctx = new NonTxInvocationContext();
+
+      RemoveLargeObjectCommand writeLargeObjectCommand = new RemoveLargeObjectCommand(
+               largeObjectMetadata.getLargeObjectKey(), null, Collections.<Flag> emptySet());
+
+      objectUnderTest.visitRemoveLargeObjectCommand(ctx, writeLargeObjectCommand);
+
+      assert Arrays.equals(expectedChunkKeys.toArray(new Object[0]),
+               receivedChunkKeys.toArray(new Object[0]));
+   }
+
+   @Test
+   public void testThatVisitRemoveLargeObjectCommandCorrectlyRemovesLargeObjectMetadata()
+            throws Throwable {
+      LargeObjectMetadata largeObjectMetadata = newTestLargeObjectMetadata();
+
+      LargeObjectSupportInterceptor objectUnderTest = new LargeObjectSupportInterceptor();
+      LargeObjectMetadataManager largeObjectMetadataManager = newLargeObjectMetadataManagerWithLargeObjectMetadataStored(
+               largeObjectMetadata.getLargeObjectKey(), largeObjectMetadata);
+      objectUnderTest.init(newConfigurationWithMaxChunkSize(3L), largeObjectMetadataManager);
+
+      CommandInterceptor noopCommandInterceptor = new CommandInterceptor() {
+         @Override
+         public Object visitRemoveLargeObjectCommand(InvocationContext ctx,
+                  RemoveLargeObjectCommand command) throws Throwable {
+            return null;
+         }
+      };
+      objectUnderTest.setNext(noopCommandInterceptor);
+
+      Object largeObjectKey = new Object();
+      InvocationContext ctx = new NonTxInvocationContext();
+
+      RemoveLargeObjectCommand writeLargeObjectCommand = new RemoveLargeObjectCommand(
+               largeObjectKey, null, Collections.<Flag> emptySet());
+
+      objectUnderTest.visitRemoveLargeObjectCommand(ctx, writeLargeObjectCommand);
+
+      assert !largeObjectMetadataManager.alreadyUsedByLargeObject(largeObjectKey) : "LargeObjectSupportInterceptor did NOT remove Large Object's metadata";
+   }
+
    private Configuration newConfigurationWithMaxChunkSize(final long maxChunkSize) {
       return new Configuration() {
          @Override
@@ -150,14 +244,23 @@ public class LargeObjectSupportInterceptorTest {
       };
    }
 
+   private LargeObjectMetadata newTestLargeObjectMetadata() {
+      return LargeObjectMetadata.newBuilder().withLargeObjectKey(new Object())
+               .withMaxChunkSizeInBytes(344L).addChunk(new Object(), 55L)
+               .addChunk(new Object(), 55L).addChunk(new Object(), 55L).addChunk(new Object(), 55L)
+               .build();
+   }
+
    private LargeObjectMetadataManager newLargeObjectMetadataManagerWithLargeObjectMetadataStored(
-            Object largeObjectKey) {
+            Object largeObjectKey, LargeObjectMetadata largeObjectMetadata) {
       ConcurrentMap<Object, LargeObjectMetadata> keyToLargeObjectMetadata = new ConcurrentHashMap<Object, LargeObjectMetadata>(
                1);
-      if (largeObjectKey != null) {
-         LargeObjectMetadata largeObjectMetadata = LargeObjectMetadata.newBuilder()
+      if (largeObjectKey != null && largeObjectMetadata == null) {
+         LargeObjectMetadata largeObjectMetadat = LargeObjectMetadata.newBuilder()
                   .withLargeObjectKey(largeObjectKey).withMaxChunkSizeInBytes(3L)
                   .addChunk(new Object(), 3L).build();
+         keyToLargeObjectMetadata.put(largeObjectMetadat.getLargeObjectKey(), largeObjectMetadat);
+      } else if (largeObjectKey != null && largeObjectMetadata != null) {
          keyToLargeObjectMetadata.put(largeObjectMetadata.getLargeObjectKey(), largeObjectMetadata);
       }
 

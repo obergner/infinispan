@@ -47,6 +47,7 @@ import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.factories.GlobalComponentRegistry;
 import org.infinispan.factories.KnownComponentNames;
@@ -116,6 +117,9 @@ public class RemoteCommandsFactory {
             break;
          case RemoveCommand.COMMAND_ID:
             command = new RemoveCommand();
+            break;
+         case RemoveLargeObjectCommand.COMMAND_ID:
+            command = new RemoveLargeObjectCommand();
             break;
          case ReplaceCommand.COMMAND_ID:
             command = new ReplaceCommand();

@@ -65,6 +65,12 @@ public class LargeObjectMetadataManagerImpl implements LargeObjectMetadataManage
                largeObjectMetadata);
    }
 
+   @Override
+   public boolean removeLargeObjectMetadata(LargeObjectMetadata largeObjectMetadata) {
+      return largeObjectKeyToMetadata().remove(largeObjectMetadata.getLargeObjectKey(),
+               largeObjectMetadata);
+   }
+
    private ConcurrentMap<Object, LargeObjectMetadata> largeObjectKeyToMetadata() {
       return cacheContainer.getCache(largeObjectMetadataCacheName);
    }

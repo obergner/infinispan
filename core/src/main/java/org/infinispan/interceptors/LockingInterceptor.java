@@ -22,7 +22,7 @@
  */
 package org.infinispan.interceptors;
 
-import org.infinispan.CacheException;
+import org.infinispan.CacheException;	
 import org.infinispan.commands.control.LockControlCommand;
 import org.infinispan.commands.read.GetKeyValueCommand;
 import org.infinispan.commands.tx.AbstractTransactionBoundaryCommand;
@@ -37,6 +37,7 @@ import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.container.DataContainer;
 import org.infinispan.container.EntryFactory;
@@ -332,6 +333,19 @@ public class LockingInterceptor extends CommandInterceptor {
 
    @Override
    public Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
+      try {
+         entryFactory.wrapEntryForWriting(ctx, command.getKey(), false, true, false, true, false);
+         return invokeNextInterceptor(ctx, command);
+      } catch (Throwable te) {
+         return cleanLocksAndRethrow(ctx, te);
+      }
+      finally {
+         doAfterCall(ctx);
+      }
+   }
+
+   @Override
+   public Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable {
       try {
          entryFactory.wrapEntryForWriting(ctx, command.getKey(), false, true, false, true, false);
          return invokeNextInterceptor(ctx, command);
