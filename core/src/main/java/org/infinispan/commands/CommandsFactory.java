@@ -49,6 +49,7 @@ import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.commands.write.WriteCommand;
 import org.infinispan.container.entries.InternalCacheValue;
@@ -109,6 +110,13 @@ public interface CommandsFactory {
     * @return a RemoveCommand
     */
    RemoveCommand buildRemoveCommand(Object key, Object value, Set<Flag> flags);
+   
+   /**
+    * Builds a RemoveLargeObjectCommand
+    * @param key key to remove
+    * @return a RemoveLargeObjectCommand
+    */
+   RemoveLargeObjectCommand buildRemoveLargeObjectCommand(Object key, Set<Flag> flags);
 
    /**
     * Builds an InvalidateCommand

@@ -24,11 +24,13 @@ package org.infinispan.interceptors;
 import java.io.InputStream;
 
 import org.infinispan.commands.write.PutKeyLargeObjectCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.config.Configuration;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.factories.annotations.Inject;
 import org.infinispan.interceptors.base.CommandInterceptor;
 import org.infinispan.largeobjectsupport.Chunk;
+import org.infinispan.largeobjectsupport.ChunkMetadata;
 import org.infinispan.largeobjectsupport.Chunks;
 import org.infinispan.largeobjectsupport.LargeObjectMetadata;
 import org.infinispan.largeobjectsupport.LargeObjectMetadataManager;
@@ -106,24 +108,65 @@ public class LargeObjectSupportInterceptor extends CommandInterceptor {
       Chunks chunks = new Chunks(command.getKey(), largeObject,
                configuration.getMaximumChunkSizeInBytes(),
                largeObjectMetadataManager.chunkKeyGenerator());
+
+      /*
+       * We need to (1) remember the key-largeObject-pair currently stored in command, (2) replace
+       * that pair with the chunkKey-chunk-pair to be stored and (3) restore the former
+       * key-LargeObject-pair in command once the chunk has been finished.
+       */
+      // FIXME: There has to be a better solution
+      Object rememberedLargeObjectKey = command.getKey();
+      Object rememberedLargeObject = command.getValue();
       for (Chunk chunk : chunks) {
-         /*
-          * We need to (1) remember the key-largeObject-pair currently stored in command, (2)
-          * replace that pair with the chunkKey-chunk-pair to be stored and (3) restore the former
-          * key-LargeObject-pair in command once the chunk has been finished.
-          */
-         // FIXME: There has to be a better solution
-         Object rememberedLargeObjectKey = command.getKey();
-         Object rememberedLargeObject = command.getValue();
          command.setKey(chunk.getChunkKey());
          command.setValue(chunk.getData());
 
          invokeNextInterceptor(ctx, command);
-
-         command.setKey(rememberedLargeObjectKey);
-         command.setValue(rememberedLargeObject);
       }
+      command.setKey(rememberedLargeObjectKey);
+      command.setValue(rememberedLargeObject);
 
       return chunks.largeObjectMetadata();
+   }
+
+   @Override
+   public Object visitRemoveLargeObjectCommand(InvocationContext ctx,
+            RemoveLargeObjectCommand command) throws Throwable {
+      checkCommandValid(ctx, command);
+      if (!largeObjectMetadataManager.alreadyUsedByLargeObject(command.getKey())) return false;
+
+      removeEachChunk(ctx, command);
+
+      return true;
+   }
+
+   /**
+    * FIXME Comment this
+    * 
+    * @param ctx
+    * @param command
+    * @throws Throwable
+    */
+   private void removeEachChunk(InvocationContext ctx, RemoveLargeObjectCommand command)
+            throws Throwable {
+      LargeObjectMetadata metadata = largeObjectMetadataManager
+               .correspondingLargeObjectMetadata(command.getKey());
+
+      Object rememberedKey = command.getKey();
+      for (ChunkMetadata chunkMetadata : metadata) {
+         command.setKey(chunkMetadata.getKey());
+
+         invokeNextInterceptor(ctx, command);
+      }
+      command.setKey(rememberedKey);
+
+      largeObjectMetadataManager.removeLargeObjectMetadata(metadata);
+   }
+
+   private void checkCommandValid(InvocationContext ctx, RemoveLargeObjectCommand command)
+            throws IllegalStateException {
+      if (ctx.isInTxScope())
+         throw new IllegalStateException(
+                  "Storing Large Objects in a transactional context is not (yet) supported.");
    }
 }

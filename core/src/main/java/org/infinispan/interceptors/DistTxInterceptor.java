@@ -34,6 +34,7 @@ import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.context.impl.TxInvocationContext;
@@ -117,6 +118,13 @@ public class DistTxInterceptor extends TxInterceptor {
       if (!ctx.isInTxScope() && command.isSuccessful()) dm.getTransactionLogger().logIfNeeded(command);
       return o;
    }
+   
+   @Override
+   public Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable {
+      Object o = super.visitRemoveLargeObjectCommand(ctx, command);
+      if (!ctx.isInTxScope() && command.isSuccessful()) dm.getTransactionLogger().logIfNeeded(command);
+      return o;
+   }
 
    @Override
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) throws Throwable {
@@ -160,6 +168,11 @@ public class DistTxInterceptor extends TxInterceptor {
 
       @Override
       public Object visitRemoveCommand(InvocationContext ignored, RemoveCommand command) {
+         return visitDataWriteCommand(command);
+      }
+      
+      @Override
+      public Object visitRemoveLargeObjectCommand(InvocationContext ignored, RemoveLargeObjectCommand command) {
          return visitDataWriteCommand(command);
       }
 

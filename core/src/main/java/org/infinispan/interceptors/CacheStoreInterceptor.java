@@ -33,6 +33,7 @@ import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.commands.write.WriteCommand;
 import org.infinispan.config.CacheLoaderManagerConfig;
@@ -190,6 +191,17 @@ public class CacheStoreInterceptor extends JmxStatsCommandInterceptor {
       }
       return retval;
    }
+   
+   @Override
+   public Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable {
+      Object retval = invokeNextInterceptor(ctx, command);
+      if (!skip(ctx, command) && !ctx.isInTxScope() && command.isSuccessful()) {
+         Object key = command.getKey();
+         boolean resp = store.remove(key);
+         if (trace) log.trace("Removed entry under key %s and got response %s from CacheStore", key, resp);
+      }
+      return retval;
+   }
 
    @Override
    public Object visitClearCommand(InvocationContext ctx, ClearCommand command) throws Throwable {
@@ -326,6 +338,17 @@ public class CacheStoreInterceptor extends JmxStatsCommandInterceptor {
       @Override
       @SuppressWarnings("unchecked")
       public Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
+         Object key = command.getKey();
+         if (!skipKey(key)) {
+            modifications.add(new Remove(key));
+            affectedKeys.add(command.getKey());
+         }
+         return null;
+      }
+      
+      @Override
+      @SuppressWarnings("unchecked")
+      public Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable {
          Object key = command.getKey();
          if (!skipKey(key)) {
             modifications.add(new Remove(key));
