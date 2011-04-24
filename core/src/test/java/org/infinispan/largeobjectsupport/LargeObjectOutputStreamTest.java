@@ -1,20 +1,23 @@
 package org.infinispan.largeobjectsupport;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.infinispan.AdvancedCache;
 import org.infinispan.Cache;
 import org.infinispan.StreamingHandler;
 import org.infinispan.config.Configuration;
 import org.infinispan.config.FluentConfiguration;
+import org.infinispan.context.Flag;
 import org.infinispan.lifecycle.ComponentStatus;
 import org.infinispan.manager.CacheContainer;
 import org.infinispan.manager.EmbeddedCacheManager;
@@ -31,7 +34,7 @@ public class LargeObjectOutputStreamTest {
 
    @Test
    public void testThatWritingAByteStreamPlusCloseProducesCorrectChunks() throws IOException {
-      Map<Object, Object> chunkCache = new HashMap<Object, Object>();
+      Cache<Object, Object> chunkCache = newCacheWithRemoveKeyRecorder(new AtomicInteger());
       LargeObjectMetadataManager metadataManager = newLargeObjectMetadataManagerWithBackingMap();
       Object largeObjectKey = new Object();
       byte[] largeObject = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
@@ -60,7 +63,7 @@ public class LargeObjectOutputStreamTest {
 
    @Test
    public void testThatWritingAByteStreamPlusCloseStoresCorrectMetadata() throws IOException {
-      Map<Object, Object> chunkCache = new HashMap<Object, Object>();
+      Cache<Object, Object> chunkCache = newCacheWithRemoveKeyRecorder(new AtomicInteger());
       LargeObjectMetadataManager metadataManager = newLargeObjectMetadataManagerWithBackingMap();
       Object largeObjectKey = new Object();
       byte[] largeObject = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
@@ -76,6 +79,32 @@ public class LargeObjectOutputStreamTest {
                .correspondingLargeObjectMetadata(largeObjectKey);
       assert storedMetadata != null : "LargeObjectOutputStream did not store any metadata";
       assert storedMetadata.getChunkMetadata().length == 3 : "Stored metadata is invalid";
+   }
+
+   @Test
+   public void testThatOverwritingAPreviouslyStoredLargeObjectCallsRemoveKey() throws IOException {
+      AtomicInteger removeKeyCount = new AtomicInteger(0);
+      Cache<Object, Object> chunkCache = newCacheWithRemoveKeyRecorder(removeKeyCount);
+      LargeObjectMetadataManager metadataManager = newLargeObjectMetadataManagerWithBackingMap();
+      Object largeObjectKey = new Object();
+
+      byte[] firstLargeObject = new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 };
+      LargeObjectOutputStream objectUnderTest = new LargeObjectOutputStream(largeObjectKey,
+               chunkCache, metadataManager.chunkKeyGenerator(), 3L, metadataManager);
+      for (byte b : firstLargeObject) {
+         objectUnderTest.write(b);
+      }
+      objectUnderTest.close();
+
+      byte[] secondLargeObject = new byte[] { 10, 22, 30, 40, 50, 60, 70, 80 };
+      LargeObjectOutputStream objectUnderTest2 = new LargeObjectOutputStream(largeObjectKey,
+               chunkCache, metadataManager.chunkKeyGenerator(), 3L, metadataManager);
+      for (byte b : secondLargeObject) {
+         objectUnderTest2.write(b);
+      }
+      objectUnderTest2.close();
+
+      assert removeKeyCount.get() >= 1 : "Overwriting a previously stored large object did NOT call StreamingHandler.removeKey(key)";
    }
 
    private LargeObjectMetadataManager newLargeObjectMetadataManagerWithBackingMap() {
@@ -108,42 +137,54 @@ public class LargeObjectOutputStreamTest {
       };
    };
 
-   private static class MapBackedCache implements Cache<Object, LargeObjectMetadata> {
+   private Cache<Object, Object> newCacheWithRemoveKeyRecorder(AtomicInteger removeKeyCount) {
+      return new MapBackedCache<Object>(new ConcurrentHashMap<Object, Object>(), removeKeyCount);
+   }
 
-      private final ConcurrentMap<Object, LargeObjectMetadata> keyToLargeObjectMetadata;
+   private static class MapBackedCache<V> implements Cache<Object, V> {
 
-      MapBackedCache(ConcurrentMap<Object, LargeObjectMetadata> keyToLargeObjectMetadata) {
-         this.keyToLargeObjectMetadata = keyToLargeObjectMetadata;
+      private final ConcurrentMap<Object, V> backingMap;
+
+      private final AtomicInteger removeKeyCount;
+
+      MapBackedCache(ConcurrentMap<Object, V> backingMap) {
+         this.backingMap = backingMap;
+         this.removeKeyCount = new AtomicInteger(0);
+      }
+
+      MapBackedCache(ConcurrentMap<Object, V> backingMap, AtomicInteger removeKeyCount) {
+         this.backingMap = backingMap;
+         this.removeKeyCount = removeKeyCount;
       }
 
       @Override
-      public LargeObjectMetadata putIfAbsent(Object key, LargeObjectMetadata value) {
-         return this.keyToLargeObjectMetadata.putIfAbsent(key, value);
+      public V putIfAbsent(Object key, V value) {
+         return this.backingMap.putIfAbsent(key, value);
       }
 
       @Override
       public boolean remove(Object key, Object value) {
-         return this.keyToLargeObjectMetadata.remove(key, value);
+         return this.backingMap.remove(key, value);
       }
 
       @Override
-      public LargeObjectMetadata replace(Object key, LargeObjectMetadata value) {
+      public V replace(Object key, V value) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI replace");
       }
 
       @Override
-      public boolean replace(Object key, LargeObjectMetadata oldValue, LargeObjectMetadata newValue) {
+      public boolean replace(Object key, V oldValue, V newValue) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI replace");
       }
 
       @Override
       public void clear() {
-         this.keyToLargeObjectMetadata.clear();
+         this.backingMap.clear();
       }
 
       @Override
       public boolean containsKey(Object key) {
-         return this.keyToLargeObjectMetadata.containsKey(key);
+         return this.backingMap.containsKey(key);
       }
 
       @Override
@@ -152,8 +193,8 @@ public class LargeObjectOutputStreamTest {
       }
 
       @Override
-      public LargeObjectMetadata get(Object key) {
-         return this.keyToLargeObjectMetadata.get(key);
+      public V get(Object key) {
+         return this.backingMap.get(key);
       }
 
       @Override
@@ -162,18 +203,18 @@ public class LargeObjectOutputStreamTest {
       }
 
       @Override
-      public LargeObjectMetadata put(Object key, LargeObjectMetadata value) {
-         return this.keyToLargeObjectMetadata.put(key, value);
+      public V put(Object key, V value) {
+         return this.backingMap.put(key, value);
       }
 
       @Override
-      public void putAll(Map<? extends Object, ? extends LargeObjectMetadata> m) {
+      public void putAll(Map<? extends Object, ? extends V> m) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI putAll");
       }
 
       @Override
-      public LargeObjectMetadata remove(Object key) {
-         return this.keyToLargeObjectMetadata.remove(key);
+      public V remove(Object key) {
+         return this.backingMap.remove(key);
       }
 
       @Override
@@ -207,7 +248,7 @@ public class LargeObjectOutputStreamTest {
       }
 
       @Override
-      public void putForExternalRead(Object key, LargeObjectMetadata value) {
+      public void putForExternalRead(Object key, V value) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI putForExternalRead");
       }
 
@@ -247,99 +288,90 @@ public class LargeObjectOutputStreamTest {
       }
 
       @Override
-      public LargeObjectMetadata put(Object key, LargeObjectMetadata value, long lifespan,
-               TimeUnit unit) {
+      public V put(Object key, V value, long lifespan, TimeUnit unit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI put");
       }
 
       @Override
-      public LargeObjectMetadata putIfAbsent(Object key, LargeObjectMetadata value, long lifespan,
-               TimeUnit unit) {
+      public V putIfAbsent(Object key, V value, long lifespan, TimeUnit unit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI putIfAbsent");
       }
 
       @Override
-      public void putAll(Map<? extends Object, ? extends LargeObjectMetadata> map, long lifespan,
-               TimeUnit unit) {
+      public void putAll(Map<? extends Object, ? extends V> map, long lifespan, TimeUnit unit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI putAll");
       }
 
       @Override
-      public LargeObjectMetadata replace(Object key, LargeObjectMetadata value, long lifespan,
-               TimeUnit unit) {
+      public V replace(Object key, V value, long lifespan, TimeUnit unit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI replace");
       }
 
       @Override
-      public boolean replace(Object key, LargeObjectMetadata oldValue, LargeObjectMetadata value,
-               long lifespan, TimeUnit unit) {
+      public boolean replace(Object key, V oldValue, V value, long lifespan, TimeUnit unit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI replace");
       }
 
       @Override
-      public LargeObjectMetadata put(Object key, LargeObjectMetadata value, long lifespan,
-               TimeUnit lifespanUnit, long maxIdleTime, TimeUnit maxIdleTimeUnit) {
+      public V put(Object key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdleTime,
+               TimeUnit maxIdleTimeUnit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI put");
       }
 
       @Override
-      public LargeObjectMetadata putIfAbsent(Object key, LargeObjectMetadata value, long lifespan,
-               TimeUnit lifespanUnit, long maxIdleTime, TimeUnit maxIdleTimeUnit) {
+      public V putIfAbsent(Object key, V value, long lifespan, TimeUnit lifespanUnit,
+               long maxIdleTime, TimeUnit maxIdleTimeUnit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI putIfAbsent");
       }
 
       @Override
-      public void putAll(Map<? extends Object, ? extends LargeObjectMetadata> map, long lifespan,
+      public void putAll(Map<? extends Object, ? extends V> map, long lifespan,
                TimeUnit lifespanUnit, long maxIdleTime, TimeUnit maxIdleTimeUnit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI putAll");
       }
 
       @Override
-      public LargeObjectMetadata replace(Object key, LargeObjectMetadata value, long lifespan,
-               TimeUnit lifespanUnit, long maxIdleTime, TimeUnit maxIdleTimeUnit) {
+      public V replace(Object key, V value, long lifespan, TimeUnit lifespanUnit, long maxIdleTime,
+               TimeUnit maxIdleTimeUnit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI replace");
       }
 
       @Override
-      public boolean replace(Object key, LargeObjectMetadata oldValue, LargeObjectMetadata value,
-               long lifespan, TimeUnit lifespanUnit, long maxIdleTime, TimeUnit maxIdleTimeUnit) {
+      public boolean replace(Object key, V oldValue, V value, long lifespan, TimeUnit lifespanUnit,
+               long maxIdleTime, TimeUnit maxIdleTimeUnit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI replace");
       }
 
       @Override
-      public NotifyingFuture<LargeObjectMetadata> putAsync(Object key, LargeObjectMetadata value) {
+      public NotifyingFuture<V> putAsync(Object key, V value) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI putAsync");
       }
 
       @Override
-      public NotifyingFuture<LargeObjectMetadata> putAsync(Object key, LargeObjectMetadata value,
+      public NotifyingFuture<V> putAsync(Object key, V value, long lifespan, TimeUnit unit) {
+         throw new org.jboss.util.NotImplementedException("FIXME NYI putAsync");
+      }
+
+      @Override
+      public NotifyingFuture<V> putAsync(Object key, V value, long lifespan, TimeUnit lifespanUnit,
+               long maxIdle, TimeUnit maxIdleUnit) {
+         throw new org.jboss.util.NotImplementedException("FIXME NYI putAsync");
+      }
+
+      @Override
+      public NotifyingFuture<Void> putAllAsync(Map<? extends Object, ? extends V> data) {
+         throw new org.jboss.util.NotImplementedException("FIXME NYI putAllAsync");
+      }
+
+      @Override
+      public NotifyingFuture<Void> putAllAsync(Map<? extends Object, ? extends V> data,
                long lifespan, TimeUnit unit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putAsync");
+         throw new org.jboss.util.NotImplementedException("FIXME NYI putAllAsync");
       }
 
       @Override
-      public NotifyingFuture<LargeObjectMetadata> putAsync(Object key, LargeObjectMetadata value,
+      public NotifyingFuture<Void> putAllAsync(Map<? extends Object, ? extends V> data,
                long lifespan, TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putAsync");
-      }
-
-      @Override
-      public NotifyingFuture<Void> putAllAsync(
-               Map<? extends Object, ? extends LargeObjectMetadata> data) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putAllAsync");
-      }
-
-      @Override
-      public NotifyingFuture<Void> putAllAsync(
-               Map<? extends Object, ? extends LargeObjectMetadata> data, long lifespan,
-               TimeUnit unit) {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI putAllAsync");
-      }
-
-      @Override
-      public NotifyingFuture<Void> putAllAsync(
-               Map<? extends Object, ? extends LargeObjectMetadata> data, long lifespan,
-               TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI putAllAsync");
       }
 
@@ -349,26 +381,23 @@ public class LargeObjectOutputStreamTest {
       }
 
       @Override
-      public NotifyingFuture<LargeObjectMetadata> putIfAbsentAsync(Object key,
-               LargeObjectMetadata value) {
+      public NotifyingFuture<V> putIfAbsentAsync(Object key, V value) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI putIfAbsentAsync");
       }
 
       @Override
-      public NotifyingFuture<LargeObjectMetadata> putIfAbsentAsync(Object key,
-               LargeObjectMetadata value, long lifespan, TimeUnit unit) {
+      public NotifyingFuture<V> putIfAbsentAsync(Object key, V value, long lifespan, TimeUnit unit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI putIfAbsentAsync");
       }
 
       @Override
-      public NotifyingFuture<LargeObjectMetadata> putIfAbsentAsync(Object key,
-               LargeObjectMetadata value, long lifespan, TimeUnit lifespanUnit, long maxIdle,
-               TimeUnit maxIdleUnit) {
+      public NotifyingFuture<V> putIfAbsentAsync(Object key, V value, long lifespan,
+               TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI putIfAbsentAsync");
       }
 
       @Override
-      public NotifyingFuture<LargeObjectMetadata> removeAsync(Object key) {
+      public NotifyingFuture<V> removeAsync(Object key) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI removeAsync");
       }
 
@@ -378,49 +407,45 @@ public class LargeObjectOutputStreamTest {
       }
 
       @Override
-      public NotifyingFuture<LargeObjectMetadata> replaceAsync(Object key, LargeObjectMetadata value) {
+      public NotifyingFuture<V> replaceAsync(Object key, V value) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI replaceAsync");
       }
 
       @Override
-      public NotifyingFuture<LargeObjectMetadata> replaceAsync(Object key,
-               LargeObjectMetadata value, long lifespan, TimeUnit unit) {
+      public NotifyingFuture<V> replaceAsync(Object key, V value, long lifespan, TimeUnit unit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI replaceAsync");
       }
 
       @Override
-      public NotifyingFuture<LargeObjectMetadata> replaceAsync(Object key,
-               LargeObjectMetadata value, long lifespan, TimeUnit lifespanUnit, long maxIdle,
-               TimeUnit maxIdleUnit) {
+      public NotifyingFuture<V> replaceAsync(Object key, V value, long lifespan,
+               TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI replaceAsync");
       }
 
       @Override
-      public NotifyingFuture<Boolean> replaceAsync(Object key, LargeObjectMetadata oldValue,
-               LargeObjectMetadata newValue) {
+      public NotifyingFuture<Boolean> replaceAsync(Object key, V oldValue, V newValue) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI replaceAsync");
       }
 
       @Override
-      public NotifyingFuture<Boolean> replaceAsync(Object key, LargeObjectMetadata oldValue,
-               LargeObjectMetadata newValue, long lifespan, TimeUnit unit) {
+      public NotifyingFuture<Boolean> replaceAsync(Object key, V oldValue, V newValue,
+               long lifespan, TimeUnit unit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI replaceAsync");
       }
 
       @Override
-      public NotifyingFuture<Boolean> replaceAsync(Object key, LargeObjectMetadata oldValue,
-               LargeObjectMetadata newValue, long lifespan, TimeUnit lifespanUnit, long maxIdle,
-               TimeUnit maxIdleUnit) {
+      public NotifyingFuture<Boolean> replaceAsync(Object key, V oldValue, V newValue,
+               long lifespan, TimeUnit lifespanUnit, long maxIdle, TimeUnit maxIdleUnit) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI replaceAsync");
       }
 
       @Override
-      public NotifyingFuture<LargeObjectMetadata> getAsync(Object key) {
+      public NotifyingFuture<V> getAsync(Object key) {
          throw new org.jboss.util.NotImplementedException("FIXME NYI getAsync");
       }
 
       @Override
-      public AdvancedCache<Object, LargeObjectMetadata> getAdvancedCache() {
+      public AdvancedCache<Object, V> getAdvancedCache() {
          throw new org.jboss.util.NotImplementedException("FIXME NYI getAdvancedCache");
       }
 
@@ -440,18 +465,45 @@ public class LargeObjectOutputStreamTest {
       }
 
       @Override
-      public Collection<LargeObjectMetadata> values() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI values");
+      public Collection<V> values() {
+         return backingMap.values();
       }
 
       @Override
-      public Set<java.util.Map.Entry<Object, LargeObjectMetadata>> entrySet() {
+      public Set<java.util.Map.Entry<Object, V>> entrySet() {
          throw new org.jboss.util.NotImplementedException("FIXME NYI entrySet");
       }
 
       @Override
       public StreamingHandler<Object> getStreamingHandler() {
-         throw new org.jboss.util.NotImplementedException("FIXME NYI getStreamingHandler");
+         return new StreamingHandler<Object>() {
+
+            @Override
+            public void writeToKey(Object key, InputStream largeObject) {
+               throw new org.jboss.util.NotImplementedException("FIXME NYI writeToKey");
+            }
+
+            @Override
+            public OutputStream writeToKey(Object key) {
+               throw new org.jboss.util.NotImplementedException("FIXME NYI writeToKey");
+            }
+
+            @Override
+            public InputStream readFromKey(Object key) {
+               throw new org.jboss.util.NotImplementedException("FIXME NYI readFromKey");
+            }
+
+            @Override
+            public boolean removeKey(Object key) {
+               removeKeyCount.incrementAndGet();
+               return backingMap.remove(key) != null;
+            }
+
+            @Override
+            public StreamingHandler<Object> withFlags(Flag... flags) {
+               throw new org.jboss.util.NotImplementedException("FIXME NYI withFlags");
+            }
+         };
       }
    }
 }

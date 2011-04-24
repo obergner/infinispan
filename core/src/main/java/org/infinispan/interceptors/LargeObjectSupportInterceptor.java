@@ -78,7 +78,11 @@ public class LargeObjectSupportInterceptor extends CommandInterceptor {
    public Object visitPutKeyLargeObjectCommand(InvocationContext ctx,
             PutKeyLargeObjectCommand command) throws Throwable {
       checkCommandValid(ctx, command);
+      // We are dealing we a large object's chunk, i.e. the large object to be stored has already
+      // been partitioned into chunks
       if (command.getValue() instanceof byte[]) return invokeNextInterceptor(ctx, command);
+
+      deletePreviousLargeObjectIfNecessary(ctx, command);
 
       LargeObjectMetadata largeObjectMetadata = chunkAndStoreEachChunk(ctx, command);
       largeObjectMetadataManager.storeLargeObjectMetadata(largeObjectMetadata);
@@ -95,11 +99,16 @@ public class LargeObjectSupportInterceptor extends CommandInterceptor {
       if (!(command.getValue() instanceof InputStream) && !(command.getValue() instanceof byte[]))
          throw new IllegalStateException("Value [" + command.getValue()
                   + "] to be stored is neither an InputStream nor a byte array");
-      // TODO: Remove as soon as we do support updates
-      if (largeObjectMetadataManager.alreadyUsedByLargeObject(command.getKey())) {
-         throw new UnsupportedOperationException("Key [" + command.getKey()
-                  + "] is already in use. Updating a large object is not yet supported.");
-      }
+   }
+
+   private void deletePreviousLargeObjectIfNecessary(InvocationContext ctx,
+            PutKeyLargeObjectCommand command) throws Throwable {
+      if (!largeObjectMetadataManager.alreadyUsedByLargeObject(command.getKey())) return;
+
+      // FIXME: This should be delegated to CommandsFactory
+      RemoveLargeObjectCommand removeCommand = new RemoveLargeObjectCommand(command.getKey(), null,
+               command.getFlags());
+      removeEachChunk(ctx, removeCommand);
    }
 
    private LargeObjectMetadata chunkAndStoreEachChunk(InvocationContext ctx,
