@@ -24,10 +24,10 @@ package org.infinispan.largeobjectsupport;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.util.Map;
 
 import net.jcip.annotations.NotThreadSafe;
 
+import org.infinispan.Cache;
 import org.infinispan.affinity.KeyGenerator;
 
 /**
@@ -44,12 +44,12 @@ import org.infinispan.affinity.KeyGenerator;
  * <li>
  * a {@code chunkKeyGenerator} and</li>
  * <li>
- * a {@code metadataManager}</li>
+ * a {@code largeObjectMetadataManager}</li>
  * </ol>
  * and later partitions the byte stream written into chunks of at most {@code maxChunkSizeInBytes}
  * length, assigning each of those chunks a {@code chunkKey} using {@code chunkKeyGenerator},
  * storing it in {@code cache}, generating {@code largeObjectMetadata} and storing it in
- * {@code metadataManager}.
+ * {@code largeObjectMetadataManager}.
  * </p>
  * <p>
  * <strong>Usage</strong> Use {@link #write(int)} or one of its overloaded variants to store your
@@ -66,13 +66,13 @@ public class LargeObjectOutputStream extends OutputStream {
 
    private final Object largeObjectKey;
 
-   private final Map<Object, Object> cache;
+   private final Cache<Object, Object> cache;
 
    private final KeyGenerator<Object> chunkKeyGenerator;
 
    private final long maxChunkSizeInBytes;
 
-   private final LargeObjectMetadataManager metadataManager;
+   private final LargeObjectMetadataManager largeObjectMetadataManager;
 
    private final LargeObjectMetadata.Builder metadataBuilder = LargeObjectMetadata.newBuilder();
 
@@ -80,14 +80,14 @@ public class LargeObjectOutputStream extends OutputStream {
 
    private boolean atLeastOneByteWritten = false;
 
-   public LargeObjectOutputStream(Object largeObjectKey, Map<Object, Object> cache,
+   public LargeObjectOutputStream(Object largeObjectKey, Cache<Object, Object> cache,
             KeyGenerator<Object> chunkKeyGenerator, long maxChunkSizeInBytes,
             LargeObjectMetadataManager metadataManager) {
       this.largeObjectKey = largeObjectKey;
       this.cache = cache;
       this.chunkKeyGenerator = chunkKeyGenerator;
       this.maxChunkSizeInBytes = maxChunkSizeInBytes;
-      this.metadataManager = metadataManager;
+      this.largeObjectMetadataManager = metadataManager;
       this.metadataBuilder.withLargeObjectKey(largeObjectKey).withMaxChunkSizeInBytes(
                maxChunkSizeInBytes);
    }
@@ -107,7 +107,7 @@ public class LargeObjectOutputStream extends OutputStream {
       if (currentChunk.size() > 0) {
          storeChunk(currentChunk);
       }
-      metadataManager.storeLargeObjectMetadata(metadataBuilder.build());
+      largeObjectMetadataManager.storeLargeObjectMetadata(metadataBuilder.build());
    }
 
    private boolean isChunkComplete(ByteArrayOutputStream chunk) {
@@ -115,11 +115,19 @@ public class LargeObjectOutputStream extends OutputStream {
    }
 
    private void storeChunk(ByteArrayOutputStream chunk) throws IOException {
+      deletePreviousLargeObjectIfNecessary();
+
       chunk.flush();
       ChunkMetadata newChunkMetadata = new ChunkMetadata(chunkKeyGenerator.getKey(), chunk.size());
       metadataBuilder.addChunkMetadata(newChunkMetadata);
       cache.put(newChunkMetadata.getKey(), chunk.toByteArray());
       chunk.reset();
+   }
+
+   private void deletePreviousLargeObjectIfNecessary() {
+      if (!largeObjectMetadataManager.alreadyUsedByLargeObject(largeObjectKey)) return;
+
+      cache.getStreamingHandler().removeKey(largeObjectKey);
    }
 
    @Override
