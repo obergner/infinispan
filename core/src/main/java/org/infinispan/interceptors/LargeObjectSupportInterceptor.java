@@ -84,6 +84,8 @@ public class LargeObjectSupportInterceptor extends CommandInterceptor {
 
       deletePreviousLargeObjectIfNecessary(ctx, command);
 
+      deletePreviousLargeObjectIfNecessary(ctx, command);
+
       LargeObjectMetadata largeObjectMetadata = chunkAndStoreEachChunk(ctx, command);
       largeObjectMetadataManager.storeLargeObjectMetadata(largeObjectMetadata);
 

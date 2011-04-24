@@ -219,6 +219,64 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
                + largeObjectKey + ") did not remove large object from replication cache";
    }
 
+   @Test
+   public void testThatWriteToKeyOverwritesPreviouslyStoredLargeObjectInSyncReplicationMode()
+            throws IOException {
+      String largeObjectKey = "testThatWriteToKeyOverwritesPreviouslyStoredLargeObjectInSyncReplicationMode";
+      byte[] firstLargeObjectBytes = new byte[] { 1, 2, 3, 4, 5, 6, 7 };
+      InputStream firstLargeObject = new ByteArrayInputStream(firstLargeObjectBytes);
+
+      Cache<Object, Object> cache1 = cache(0, TEST_CACHE_NAME);
+      Cache<Object, Object> cache2 = cache(1, TEST_CACHE_NAME);
+
+      replListener(cache2).expect(PutKeyLargeObjectCommand.class);
+      cache1.getStreamingHandler().writeToKey(largeObjectKey, firstLargeObject);
+      replListener(cache2).waitForRpc();
+
+      byte[] secondLargeObjectBytes = new byte[] { 10, 20, 30, 40, 50, 60, 70 };
+      InputStream secondLargeObject = new ByteArrayInputStream(secondLargeObjectBytes);
+
+      replListener(cache2).expect(PutKeyLargeObjectCommand.class);
+      cache1.getStreamingHandler().writeToKey(largeObjectKey, secondLargeObject);
+      replListener(cache2).waitForRpc();
+
+      InputStream overwrittenLargeObject = cache2.getStreamingHandler().readFromKey(largeObjectKey);
+      byte[] overwrittenLargeObjectBytes = readLargeObjectFrom(overwrittenLargeObject);
+
+      assert Arrays.equals(secondLargeObjectBytes, overwrittenLargeObjectBytes) : "writeToKey("
+               + largeObjectKey + ", " + secondLargeObject
+               + ") did not overwrite previously stored large object";
+   }
+
+   @Test
+   public void testThatWriteToKeyUsingOutputStreamOverwritesPreviouslyStoredLargeObjectInSyncReplicationMode()
+            throws IOException {
+      String largeObjectKey = "testThatWriteToKeyUsingOutputStreamOverwritesPreviouslyStoredLargeObject";
+      byte[] firstLargeObjectBytes = new byte[] { 1, 2, 3, 4, 5, 6, 7 };
+
+      Cache<Object, Object> cache1 = cache(0, TEST_CACHE_NAME);
+      OutputStream firstLargeObjectOutputStream = cache1.getStreamingHandler().writeToKey(
+               largeObjectKey);
+      for (byte b : firstLargeObjectBytes)
+         firstLargeObjectOutputStream.write(b);
+      firstLargeObjectOutputStream.close();
+
+      byte[] secondLargeObjectBytes = new byte[] { 10, 20, 30, 40, 50, 60, 70 };
+
+      Cache<Object, Object> cache2 = cache(0, TEST_CACHE_NAME);
+      OutputStream secondLargeObjectOutputStream = cache2.getStreamingHandler().writeToKey(
+               largeObjectKey);
+      for (byte b : secondLargeObjectBytes)
+         secondLargeObjectOutputStream.write(b);
+      secondLargeObjectOutputStream.close();
+
+      InputStream overwrittenLargeObject = cache2.getStreamingHandler().readFromKey(largeObjectKey);
+      byte[] overwrittenLargeObjectBytes = readLargeObjectFrom(overwrittenLargeObject);
+
+      assert Arrays.equals(secondLargeObjectBytes, overwrittenLargeObjectBytes) : "writeToKey("
+               + largeObjectKey + ") did not overwrite previously stored large object";
+   }
+
    private Cache<Object, LargeObjectMetadata> defaultLargeObjectMetadataCache() {
       return manager(0).getCache(
                FluentConfiguration.LargeObjectSupportConfig.DEFAULT_LARGEOBJECT_METADATA_CACHE);
