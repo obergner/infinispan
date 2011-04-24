@@ -33,6 +33,7 @@ import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.commands.write.WriteCommand;
 import org.infinispan.container.DataContainer;
@@ -252,6 +253,13 @@ public class DistributionInterceptor extends BaseRpcInterceptor {
 
    @Override
    public Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
+
+      return handleWriteCommand(ctx, command,
+                                new SingleKeyRecipientGenerator(command.getKey()), false, false);
+   }
+   
+   @Override
+   public Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable {
 
       return handleWriteCommand(ctx, command,
                                 new SingleKeyRecipientGenerator(command.getKey()), false, false);

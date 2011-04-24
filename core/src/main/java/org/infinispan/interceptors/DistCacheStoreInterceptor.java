@@ -26,6 +26,7 @@ import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.container.entries.InternalCacheEntry;
 import org.infinispan.context.Flag;
@@ -127,6 +128,17 @@ public class DistCacheStoreInterceptor extends CacheStoreInterceptor {
       return retval;
    }
 
+   @Override
+   public Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable {
+      Object retval = invokeNextInterceptor(ctx, command);
+      Object key = command.getKey();
+      if (!skip(ctx, key) && !ctx.isInTxScope() && command.isSuccessful()) {
+         boolean resp = store.remove(key);
+         log.tracef("Removed entry under key %s and got response %s from CacheStore", key, resp);
+      }
+      return retval;
+   }
+   
    @Override
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command)
          throws Throwable {

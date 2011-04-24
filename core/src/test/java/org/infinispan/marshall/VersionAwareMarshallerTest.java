@@ -50,6 +50,7 @@ import org.infinispan.commands.write.InvalidateL1Command;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.config.Configuration;
 import org.infinispan.container.entries.*;
@@ -291,6 +292,9 @@ public class VersionAwareMarshallerTest extends AbstractInfinispanTest {
 
       RollbackCommand c13 = new RollbackCommand(cacheName, gtx);
       marshallAndAssertEquality(c13);
+      
+      RemoveLargeObjectCommand c22 = new RemoveLargeObjectCommand("key", null, Collections.<Flag>emptySet());
+      marshallAndAssertEquality(c22);
 
       MultipleRpcCommand c99 = new MultipleRpcCommand(Arrays.asList(c2, c5, c6, c8, c10, c12, c13), cacheName);
       marshallAndAssertEquality(c99);

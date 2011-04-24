@@ -30,6 +30,7 @@ import org.infinispan.Cache;
 import org.infinispan.StreamingHandler;
 import org.infinispan.commands.CommandsFactory;
 import org.infinispan.commands.write.PutKeyLargeObjectCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.config.Configuration;
 import org.infinispan.context.Flag;
 import org.infinispan.context.InvocationContext;
@@ -124,6 +125,15 @@ public class StreamingHandlerImpl<K> implements StreamingHandler<K> {
       }
       flagHolder.remove();
       return ctx;
+   }
+
+   @Override
+   public boolean removeKey(K key) {
+      assertKeyNotNull(key);
+      InvocationContext ctx = getInvocationContext(false);
+      RemoveLargeObjectCommand command = commandsFactory.buildRemoveLargeObjectCommand(key,
+               ctx.getFlags());
+      return Boolean.class.cast(invoker.invoke(ctx, command));
    }
 
    @Override

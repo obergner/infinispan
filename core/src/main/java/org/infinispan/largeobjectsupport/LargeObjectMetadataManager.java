@@ -72,6 +72,18 @@ public interface LargeObjectMetadataManager {
    void storeLargeObjectMetadata(LargeObjectMetadata largeObjectMetadata);
 
    /**
+    * Remove the supplied {@link LargeObjectMetadata <code>largeObjectMetadata</code>} from this
+    * {@code LargeObjectMetadataManager}.
+    * 
+    * @param largeObjectMetadata
+    *           {@link LargeObjectMetadata <code>LargeObjectMetadata</code>} to remove
+    * @return {@code true} if {@code largeObjectMetadata} was stored prior to this call and has been
+    *         removed, {@code false} if {@code largeObjectMetadata} was not stored when this method
+    *         was called
+    */
+   boolean removeLargeObjectMetadata(LargeObjectMetadata largeObjectMetadata);
+
+   /**
     * Return a {@link KeyGenerator <code>KeyGenerator</code>} clients may use to generate keys for a
     * large object's {@link Chunk <code>Chunk</code>}s.
     * 

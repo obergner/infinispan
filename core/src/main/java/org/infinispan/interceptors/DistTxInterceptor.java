@@ -35,6 +35,7 @@ import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.context.impl.TxInvocationContext;
@@ -161,6 +162,18 @@ public class DistTxInterceptor extends TxInterceptor {
          dm.getTransactionLogger().afterCommand(ctx, command);
       }
    }
+   
+   @Override
+   public Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable {
+      if (!dm.getTransactionLogger().beforeCommand(ctx, command)) {
+         throw new RehashInProgressException("Timed out waiting for the transaction lock");
+      }
+      try {
+         return super.visitRemoveLargeObjectCommand(ctx, command);
+      } finally {
+         dm.getTransactionLogger().afterCommand(ctx, command);
+      }
+   }
 
    @Override
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) throws Throwable {
@@ -219,6 +232,11 @@ public class DistTxInterceptor extends TxInterceptor {
 
       @Override
       public Object visitRemoveCommand(InvocationContext ignored, RemoveCommand command) {
+         return visitDataWriteCommand(command);
+      }
+      
+      @Override
+      public Object visitRemoveLargeObjectCommand(InvocationContext ignored, RemoveLargeObjectCommand command) {
          return visitDataWriteCommand(command);
       }
 

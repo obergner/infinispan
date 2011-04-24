@@ -52,6 +52,7 @@ import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.commands.write.ReplaceCommand;
 import org.infinispan.commands.write.WriteCommand;
 import org.infinispan.config.Configuration;
@@ -151,6 +152,10 @@ public class CommandsFactoryImpl implements CommandsFactory {
 
    public RemoveCommand buildRemoveCommand(Object key, Object value, Set<Flag> flags) {
       return new RemoveCommand(key, value, notifier, flags);
+   }
+   
+   public RemoveLargeObjectCommand buildRemoveLargeObjectCommand(Object key, Set<Flag> flags) {
+      return new RemoveLargeObjectCommand(key, notifier, flags);
    }
 
    public InvalidateCommand buildInvalidateCommand(Object... keys) {

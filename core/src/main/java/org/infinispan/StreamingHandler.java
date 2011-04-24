@@ -91,6 +91,18 @@ public interface StreamingHandler<K> {
    InputStream readFromKey(K key);
 
    /**
+    * <em>Large Object Support</em>: Remove the <em>Large Object</em> currently mapped to
+    * {@code key} from the backing {@code Cache}. Return {@code true} if {@code key} did in fact map
+    * to a <em>Large Object</em> when this method was called, {@code false} otherwise.
+    * 
+    * @param key
+    *           The key to remove from the backing cache
+    * @return {@code true} if {@code key} did in fact map to a <em>Large Object</em> when this
+    *         method was called, {@code false} otherwise
+    */
+   boolean removeKey(K key);
+
+   /**
     * A builder-style method that adds flags to any API call. For example, consider the following
     * code snippet:
     * 

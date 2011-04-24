@@ -28,6 +28,7 @@ import org.infinispan.commands.write.PutKeyLargeObjectCommand;
 import org.infinispan.commands.write.PutKeyValueCommand;
 import org.infinispan.commands.write.PutMapCommand;
 import org.infinispan.commands.write.RemoveCommand;
+import org.infinispan.commands.write.RemoveLargeObjectCommand;
 import org.infinispan.container.DataContainer;
 import org.infinispan.context.InvocationContext;
 import org.infinispan.factories.annotations.Inject;
@@ -131,6 +132,17 @@ public class CacheMgmtInterceptor extends JmxStatsCommandInterceptor {
 
    @Override
    public Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable {
+      Object retval = invokeNextInterceptor(ctx, command);
+      if (retval == null) {
+         removeMisses.incrementAndGet();
+      } else {
+         removeHits.incrementAndGet();
+      }
+      return retval;
+   }
+   
+   @Override
+   public Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable {
       Object retval = invokeNextInterceptor(ctx, command);
       if (retval == null) {
          removeMisses.incrementAndGet();
