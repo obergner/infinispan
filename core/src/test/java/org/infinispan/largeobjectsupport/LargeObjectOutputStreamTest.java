@@ -56,7 +56,7 @@ public class LargeObjectOutputStreamTest {
 
    private boolean cacheContainsChunk(Map<Object, Object> cache, byte[] expectedChunk) {
       for (Object chunk : cache.values()) {
-         if (Arrays.equals(expectedChunk, (byte[]) chunk)) return true;
+         if (Arrays.equals(expectedChunk, ((Chunk) chunk).getData())) return true;
       }
       return false;
    }

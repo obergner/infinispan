@@ -27,6 +27,7 @@ import org.infinispan.context.InvocationContext;
 import org.infinispan.context.impl.LocalTxInvocationContext;
 import org.infinispan.context.impl.NonTxInvocationContext;
 import org.infinispan.interceptors.base.CommandInterceptor;
+import org.infinispan.largeobjectsupport.Chunk;
 import org.infinispan.largeobjectsupport.ChunkMetadata;
 import org.infinispan.largeobjectsupport.LargeObjectMetadata;
 import org.infinispan.largeobjectsupport.LargeObjectMetadataManager;
@@ -86,9 +87,9 @@ public class LargeObjectSupportInterceptorTest {
                   PutKeyLargeObjectCommand command) throws Throwable {
             assert command.getValue() != null : "LargeObjectSupportInterceptor did not store "
                      + "any value in PutKeyValueCommand";
-            assert command.getValue() instanceof byte[] : "LargeObjectSupportInterceptor did not store "
-                     + "value of type byte[] in command";
-            receivedChunkData.add(byte[].class.cast(command.getValue()));
+            assert command.getValue() instanceof Chunk : "LargeObjectSupportInterceptor did not store "
+                     + "value of type Chunk in command";
+            receivedChunkData.add(Chunk.class.cast(command.getValue()).getData());
 
             return null;
          }
@@ -194,7 +195,7 @@ public class LargeObjectSupportInterceptorTest {
       };
       objectUnderTest.setNext(recordingCommandInterceptor);
 
-       InvocationContext ctx = new NonTxInvocationContext();
+      InvocationContext ctx = new NonTxInvocationContext();
 
       RemoveLargeObjectCommand writeLargeObjectCommand = new RemoveLargeObjectCommand(
                largeObjectMetadata.getLargeObjectKey(), null, Collections.<Flag> emptySet());

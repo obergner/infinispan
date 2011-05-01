@@ -83,7 +83,7 @@ public class LargeObjectInputStreamTest {
    }
 
    public TestData newTestData(int largeObjectSize, int maxChunkSize) {
-      Map<String, byte[]> chunkCache = new HashMap<String, byte[]>();
+      Map<String, Chunk> chunkCache = new HashMap<String, Chunk>();
       int currentSize = 0;
       byte[] largeObject = new byte[largeObjectSize];
       List<String> chunkKeys = new ArrayList<String>();
@@ -93,14 +93,15 @@ public class LargeObjectInputStreamTest {
       do {
          int currentChunkSize = (largeObjectSize - currentSize < maxChunkSize) ? (int) (largeObjectSize - currentSize)
                   : maxChunkSize;
-         byte[] currentChunk = new byte[currentChunkSize];
+         byte[] currentChunkData = new byte[currentChunkSize];
          for (int currentChunkIdx = 0; currentChunkIdx < currentChunkSize; currentChunkIdx++) {
             byte currentByte = (byte) (currentSize % 255);
-            currentChunk[currentChunkIdx] = currentByte;
+            currentChunkData[currentChunkIdx] = currentByte;
             largeObject[currentSize++] = currentByte;
          }
          String currentChunkKey = UUID.randomUUID().toString();
          chunkKeys.add(currentChunkKey);
+         Chunk currentChunk = new Chunk(null, currentChunkKey, currentChunkData);
          chunkCache.put(currentChunkKey, currentChunk);
          metadataBuilder.addChunk(currentChunkKey, currentChunkSize);
       } while (currentSize < largeObjectSize);
@@ -110,13 +111,13 @@ public class LargeObjectInputStreamTest {
 
    private static final class TestData {
 
-      final Map<String, byte[]> chunkCache;
+      final Map<String, Chunk> chunkCache;
 
       final LargeObjectMetadata metadata;
 
       final byte[] largeObject;
 
-      TestData(Map<String, byte[]> chunkCache, LargeObjectMetadata metadata, byte[] largeObject) {
+      TestData(Map<String, Chunk> chunkCache, LargeObjectMetadata metadata, byte[] largeObject) {
          this.chunkCache = chunkCache;
          this.metadata = metadata;
          this.largeObject = largeObject;
