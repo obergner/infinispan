@@ -76,7 +76,7 @@ public class LargeObjectOutputStream extends OutputStream {
 
    private final LargeObjectMetadata.Builder metadataBuilder = LargeObjectMetadata.newBuilder();
 
-   private final ByteArrayOutputStream currentChunk = new ByteArrayOutputStream();
+   private final ByteArrayOutputStream currentChunkData = new ByteArrayOutputStream();
 
    private boolean atLeastOneByteWritten = false;
 
@@ -95,17 +95,17 @@ public class LargeObjectOutputStream extends OutputStream {
    @Override
    public void write(int arg0) throws IOException {
       atLeastOneByteWritten = true;
-      currentChunk.write(arg0);
-      if (isChunkComplete(currentChunk)) {
-         storeChunk(currentChunk);
+      currentChunkData.write(arg0);
+      if (isChunkComplete(currentChunkData)) {
+         storeChunk(currentChunkData);
       }
    }
 
    @Override
    public void close() throws IOException {
       if (!atLeastOneByteWritten) return;
-      if (currentChunk.size() > 0) {
-         storeChunk(currentChunk);
+      if (currentChunkData.size() > 0) {
+         storeChunk(currentChunkData);
       }
       largeObjectMetadataManager.storeLargeObjectMetadata(metadataBuilder.build());
    }
@@ -114,14 +114,17 @@ public class LargeObjectOutputStream extends OutputStream {
       return chunk.size() == maxChunkSizeInBytes;
    }
 
-   private void storeChunk(ByteArrayOutputStream chunk) throws IOException {
+   private void storeChunk(ByteArrayOutputStream chunkData) throws IOException {
       deletePreviousLargeObjectIfNecessary();
 
-      chunk.flush();
-      ChunkMetadata newChunkMetadata = new ChunkMetadata(chunkKeyGenerator.getKey(), chunk.size());
+      chunkData.flush();
+      ChunkMetadata newChunkMetadata = new ChunkMetadata(chunkKeyGenerator.getKey(),
+               chunkData.size());
       metadataBuilder.addChunkMetadata(newChunkMetadata);
-      cache.put(newChunkMetadata.getKey(), chunk.toByteArray());
-      chunk.reset();
+      Chunk currentChunk = new Chunk(largeObjectKey, newChunkMetadata.getKey(),
+               chunkData.toByteArray());
+      cache.put(newChunkMetadata.getKey(), currentChunk);
+      chunkData.reset();
    }
 
    private void deletePreviousLargeObjectIfNecessary() {

@@ -151,7 +151,7 @@ public class Chunks implements Iterable<Chunk> {
             Object chunkKey = chunkKeyGenerator.getKey();
             largeObjectMetadataBuilder.addChunk(chunkKey, chunkData.size());
 
-            return new Chunk(chunkKey, chunkData.toByteArray());
+            return new Chunk(largeObjectKey, chunkKey, chunkData.toByteArray());
          } catch (IOException e) {
             throw new RuntimeException("Failed to read Chunk from LargeObject InputStream: "
                      + e.getMessage(), e);

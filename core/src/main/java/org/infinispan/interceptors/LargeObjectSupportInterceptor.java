@@ -80,7 +80,7 @@ public class LargeObjectSupportInterceptor extends CommandInterceptor {
       checkCommandValid(ctx, command);
       // We are dealing we a large object's chunk, i.e. the large object to be stored has already
       // been partitioned into chunks
-      if (command.getValue() instanceof byte[]) return invokeNextInterceptor(ctx, command);
+      if (command.getValue() instanceof Chunk) return invokeNextInterceptor(ctx, command);
 
       deletePreviousLargeObjectIfNecessary(ctx, command);
 
@@ -96,9 +96,9 @@ public class LargeObjectSupportInterceptor extends CommandInterceptor {
       if (ctx.isInTxScope())
          throw new IllegalStateException(
                   "Storing Large Objects in a transactional context is not (yet) supported.");
-      if (!(command.getValue() instanceof InputStream) && !(command.getValue() instanceof byte[]))
+      if (!(command.getValue() instanceof InputStream) && !(command.getValue() instanceof Chunk))
          throw new IllegalStateException("Value [" + command.getValue()
-                  + "] to be stored is neither an InputStream nor a byte array");
+                  + "] to be stored is neither an InputStream nor a Chunk");
    }
 
    private void deletePreviousLargeObjectIfNecessary(InvocationContext ctx,
@@ -128,7 +128,7 @@ public class LargeObjectSupportInterceptor extends CommandInterceptor {
       Object rememberedLargeObject = command.getValue();
       for (Chunk chunk : chunks) {
          command.setKey(chunk.getChunkKey());
-         command.setValue(chunk.getData());
+         command.setValue(chunk);
 
          invokeNextInterceptor(ctx, command);
       }

@@ -55,7 +55,7 @@ public class LargeObjectInputStream extends InputStream {
 
    private final Map<?, ?> largeObjectCache;
 
-   private byte[] currentChunk;
+   private Chunk currentChunk;
 
    private long numberOfBytesRead = 0L;
 
@@ -77,7 +77,7 @@ public class LargeObjectInputStream extends InputStream {
       if (isFirstCallToRead() || shouldReadNextChunk()) {
          currentChunk = nextChunk(largeObjectMetadata.getChunkMetadata()[currentChunkKeyIndex++]);
       }
-      return currentChunk[(int) (numberOfBytesRead++ % largeObjectMetadata
+      return currentChunk.getData()[(int) (numberOfBytesRead++ % largeObjectMetadata
                .getMaximumChunkSizeInBytes())];
    }
 
@@ -85,8 +85,8 @@ public class LargeObjectInputStream extends InputStream {
       return currentChunk == null;
    }
 
-   private byte[] nextChunk(ChunkMetadata chunkMetadata) {
-      return byte[].class.cast(largeObjectCache.get(chunkMetadata.getKey()));
+   private Chunk nextChunk(ChunkMetadata chunkMetadata) {
+      return Chunk.class.cast(largeObjectCache.get(chunkMetadata.getKey()));
    }
 
    private boolean shouldReadNextChunk() {

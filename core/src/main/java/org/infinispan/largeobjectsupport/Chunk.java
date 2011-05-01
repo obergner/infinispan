@@ -21,6 +21,8 @@
  */
 package org.infinispan.largeobjectsupport;
 
+import java.io.Serializable;
+
 /**
  * <p>
  * Represents a single chunk/fragment of a <em>Large Object</em> to be stored in INFINISPAN. Since a
@@ -32,15 +34,30 @@ package org.infinispan.largeobjectsupport;
  * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
  * @since 5.1
  */
-public class Chunk {
+public class Chunk implements Serializable {
+
+   /** The serialVersionUID */
+   private static final long serialVersionUID = -821309119174907251L;
+
+   private final Object largeObjectKey;
 
    private final Object chunkKey;
 
    private final byte[] data;
 
-   Chunk(Object chunkKey, byte[] data) {
+   Chunk(Object largeObjectKey, Object chunkKey, byte[] data) {
+      this.largeObjectKey = largeObjectKey;
       this.chunkKey = chunkKey;
       this.data = data;
+   }
+
+   /**
+    * Get large object key
+    * 
+    * @return The large object key
+    */
+   public Object getLargeObjectKey() {
+      return largeObjectKey;
    }
 
    /**

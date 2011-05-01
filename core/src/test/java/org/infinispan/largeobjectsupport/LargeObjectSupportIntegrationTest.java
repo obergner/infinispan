@@ -92,7 +92,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
 
       LargeObjectMetadata writtenMetadata = defaultLargeObjectMetadataCache().get(largeObjectKey);
       ChunkMetadata chunkMetadata = writtenMetadata.getChunkMetadata()[0];
-      byte[] chunk = (byte[]) cache1.get(chunkMetadata.getKey());
+      Chunk chunk = Chunk.class.cast(cache1.get(chunkMetadata.getKey()));
 
       assert chunk != null : "writeToKey(" + largeObjectKey + ", " + largeObject
                + ") did not store chunk";
@@ -114,7 +114,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
       LargeObjectMetadata writtenMetadata = defaultLargeObjectMetadataCache().get(largeObjectKey);
       ChunkMetadata chunkMetadata = writtenMetadata.getChunkMetadata()[0];
 
-      byte[] chunk = (byte[]) cache2.get(chunkMetadata.getKey());
+      Chunk chunk = Chunk.class.cast(cache2.get(chunkMetadata.getKey()));
 
       assert chunk != null : "writeToKey(" + largeObjectKey + ", " + largeObject
                + ") did not replicate chunks";
@@ -179,7 +179,7 @@ public class LargeObjectSupportIntegrationTest extends MultipleCacheManagersTest
 
       LargeObjectMetadata writtenMetadata = defaultLargeObjectMetadataCache().get(largeObjectKey);
       ChunkMetadata chunkMetadata = writtenMetadata.getChunkMetadata()[0];
-      byte[] chunk = (byte[]) cache1.get(chunkMetadata.getKey());
+      Chunk chunk = Chunk.class.cast(cache1.get(chunkMetadata.getKey()));
 
       assert chunk != null : "writeToKey(" + largeObjectKey + ") did not store chunk";
    }
