@@ -28,6 +28,7 @@ import org.infinispan.commands.Visitor;
 import org.infinispan.container.entries.MVCCEntry;
 import org.infinispan.context.Flag;
 import org.infinispan.context.InvocationContext;
+import org.infinispan.largeobjectsupport.Chunk;
 import org.infinispan.notifications.cachelistener.CacheNotifier;
 
 /**
@@ -71,12 +72,12 @@ public class PutKeyLargeObjectCommand extends PutKeyValueCommand {
 
    @Override
    public Object perform(InvocationContext ctx) throws Throwable {
-      if (!(value instanceof byte[]))
+      if (!(value instanceof Chunk))
          throw new IllegalStateException(
                   "This PutKeyValueCommand ["
                            + this
                            + "] is configured as a command handling a large object. However, the supplied value ["
-                           + value + "] is not a byte array/chunk");
+                           + value + "] is not a Chunk");
       MVCCEntry e = (MVCCEntry) ctx.lookupEntry(key);
       e.setValue(value);
       if (e.isRemoved()) {
@@ -97,7 +98,7 @@ public class PutKeyLargeObjectCommand extends PutKeyValueCommand {
    public Object acceptVisitor(InvocationContext ctx, Visitor visitor) throws Throwable {
       return visitor.visitPutKeyLargeObjectCommand(ctx, this);
    }
-   
+
    @Override
    public boolean equals(Object o) {
       if (this == o) return true;
@@ -123,18 +124,13 @@ public class PutKeyLargeObjectCommand extends PutKeyValueCommand {
       result = 31 * result + (int) (maxIdleTimeMillis ^ (maxIdleTimeMillis >>> 32));
       return result;
    }
-   
+
    @Override
    public String toString() {
-      return new StringBuilder()
-            .append("PutKeyLargeObjectCommand{key=")
-            .append(key)
-            .append(", value=").append(value)
-            .append(", flags=").append(flags)
-            .append(", putIfAbsent=").append(putIfAbsent)
-            .append(", lifespanMillis=").append(lifespanMillis)
-            .append(", maxIdleTimeMillis=").append(maxIdleTimeMillis)
-            .append("}")
-            .toString();
+      return new StringBuilder().append("PutKeyLargeObjectCommand{key=").append(key)
+               .append(", value=").append(value).append(", flags=").append(flags)
+               .append(", putIfAbsent=").append(putIfAbsent).append(", lifespanMillis=")
+               .append(lifespanMillis).append(", maxIdleTimeMillis=").append(maxIdleTimeMillis)
+               .append("}").toString();
    }
 }
