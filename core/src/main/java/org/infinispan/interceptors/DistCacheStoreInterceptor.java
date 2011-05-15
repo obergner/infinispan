@@ -99,7 +99,7 @@ public class DistCacheStoreInterceptor extends CacheStoreInterceptor {
       if (getStatisticsEnabled()) cacheStores.incrementAndGet();
       return returnValue;
    }
-
+   
    @Override
    public Object visitPutMapCommand(InvocationContext ctx, PutMapCommand command) throws Throwable {
       Object returnValue = invokeNextInterceptor(ctx, command);

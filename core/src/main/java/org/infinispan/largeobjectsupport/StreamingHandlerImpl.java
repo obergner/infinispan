@@ -62,7 +62,7 @@ public class StreamingHandlerImpl<K> implements StreamingHandler<K> {
 
    private final Cache<K, ?> backingCache;
 
-   private final ThreadLocal<PreInvocationContext> flagHolder = new ThreadLocal<PreInvocationContext>() ;
+   private final ThreadLocal<PreInvocationContext> flagHolder = new ThreadLocal<PreInvocationContext>();
 
    public StreamingHandlerImpl(InterceptorChain invoker, CommandsFactory commandsFactory,
             LargeObjectMetadataManager largeObjectMetadataManager, long defaultLifespan,

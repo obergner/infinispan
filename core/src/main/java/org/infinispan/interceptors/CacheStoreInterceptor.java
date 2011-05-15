@@ -22,8 +22,18 @@
  */
 package org.infinispan.interceptors;
 
+import static org.infinispan.context.Flag.SKIP_CACHE_STORE;
+import static org.infinispan.context.Flag.SKIP_SHARED_CACHE_STORE;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.infinispan.commands.AbstractVisitor;
-import org.infinispan.commands.DataCommand;
 import org.infinispan.commands.VisitableCommand;
 import org.infinispan.commands.tx.CommitCommand;
 import org.infinispan.commands.tx.PrepareCommand;
@@ -59,17 +69,6 @@ import org.infinispan.util.logging.LogFactory;
 import org.rhq.helpers.pluginAnnotations.agent.MeasurementType;
 import org.rhq.helpers.pluginAnnotations.agent.Metric;
 import org.rhq.helpers.pluginAnnotations.agent.Operation;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicLong;
-
-import static org.infinispan.context.Flag.SKIP_CACHE_STORE;
-import static org.infinispan.context.Flag.SKIP_SHARED_CACHE_STORE;
 
 /**
  * Writes modifications back to the store on the way out: stores modifications back through the CacheLoader, either
@@ -202,7 +201,7 @@ public class CacheStoreInterceptor extends JmxStatsCommandInterceptor {
       }
       return retval;
    }
-
+   
    @Override
    public Object visitClearCommand(InvocationContext ctx, ClearCommand command) throws Throwable {
       if (!skip(ctx, command) && !ctx.isInTxScope()) {
@@ -239,7 +238,7 @@ public class CacheStoreInterceptor extends JmxStatsCommandInterceptor {
 
       return returnValue;
    }
-
+   
    @Override
    public Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) throws Throwable {
       Object returnValue = invokeNextInterceptor(ctx, command);
