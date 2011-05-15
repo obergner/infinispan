@@ -198,7 +198,7 @@ public class CacheStoreInterceptor extends JmxStatsCommandInterceptor {
       if (!skip(ctx, command) && !ctx.isInTxScope() && command.isSuccessful()) {
          Object key = command.getKey();
          boolean resp = store.remove(key);
-         if (trace) log.trace("Removed entry under key %s and got response %s from CacheStore", key, resp);
+         if (trace) log.tracef("Removed entry under key %s and got response %s from CacheStore", key, resp);
       }
       return retval;
    }

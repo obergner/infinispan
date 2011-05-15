@@ -134,7 +134,7 @@ public class DistCacheStoreInterceptor extends CacheStoreInterceptor {
       Object key = command.getKey();
       if (!skip(ctx, key) && !ctx.isInTxScope() && command.isSuccessful()) {
          boolean resp = store.remove(key);
-         log.trace("Removed entry under key %s and got response %s from CacheStore", key, resp);
+         log.tracef("Removed entry under key %s and got response %s from CacheStore", key, resp);
       }
       return retval;
    }
