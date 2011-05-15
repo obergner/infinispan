@@ -131,19 +131,17 @@ public class ReplicableCommandExternalizer extends AbstractExternalizer<Replicab
 
    @Override
    public Set<Class<? extends ReplicableCommand>> getTypeClasses() {
-       Set<Class<? extends ReplicableCommand>> coreCommands = Util.asSet(
-            DistributedExecuteCommand.class,
-            StateTransferControlCommand.class, GetKeyValueCommand.class,
-            ClearCommand.class, EvictCommand.class,
-            InvalidateCommand.class, InvalidateL1Command.class,
-            PutKeyValueCommand.class, PutKeyLargeObjectCommand.class, PutMapCommand.class,
-            RemoveCommand.class, RemoveLargeObjectCommand.class, ReplaceCommand.class,
-            RemoveCacheCommand.class, RemoveRecoveryInfoCommand.class, GetInDoubtTransactionsCommand.class,
-            GetInDoubtTxInfoCommand.class, CompleteTransactionCommand.class);
-      // Search only those commands that replicable and not cache specific replicable commands
-       Collection<Class<? extends ReplicableCommand>> moduleCommands = ModuleProperties.moduleCommands();
-      if (moduleCommands != null && !moduleCommands.isEmpty()) coreCommands.addAll(moduleCommands);
-      return coreCommands;
+      Set<Class<? extends ReplicableCommand>> coreCommands = Util.asSet(
+               DistributedExecuteCommand.class,
+               StateTransferControlCommand.class, GetKeyValueCommand.class,
+               ClearCommand.class, EvictCommand.class,
+               InvalidateCommand.class, InvalidateL1Command.class,
+               PutKeyValueCommand.class, PutKeyLargeObjectCommand.class, PutMapCommand.class,
+               RemoveCommand.class, RemoveLargeObjectCommand.class, ReplaceCommand.class);
+         // Search only those commands that replicable and not cache specific replicable commands
+         Collection<Class<? extends ReplicableCommand>> moduleCommands = moduleOnlyReplicableCommands();
+         if (moduleCommands != null && !moduleCommands.isEmpty()) coreCommands.addAll(moduleCommands);
+         return coreCommands;
    }
 
    private Collection<Class<? extends ReplicableCommand>> getModuleCommands() {
