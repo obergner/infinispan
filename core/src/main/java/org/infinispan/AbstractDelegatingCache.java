@@ -304,6 +304,11 @@ public abstract class AbstractDelegatingCache<K, V> implements Cache<K, V> {
    }
    
    @Override
+   public StreamingHandler<K> getStreamingHandler() {
+      return cache.getStreamingHandler();
+   }
+   
+   @Override
    public String toString() {
       return cache.toString();
    }

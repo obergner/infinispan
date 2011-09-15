@@ -102,6 +102,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import static org.infinispan.context.Flag.*;
 import static org.infinispan.factories.KnownComponentNames.*;
 
@@ -131,8 +132,7 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    private DataContainer dataContainer;
    private static final Log log = LogFactory.getLog(CacheImpl.class);
    private EmbeddedCacheManager cacheManager;
-   // this is never used here but should be injected - this is a hack to make sure the
-   // StateTransferManager is properly constructed if needed.
+   // this is never used here but should be injected - this is a hack to make sure the StateTransferManager is properly constructed if needed.
    private StateTransferManager stateTransferManager;
    // as above for ResponseGenerator
    private ResponseGenerator responseGenerator;
@@ -350,7 +350,7 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
 
    private InvocationContext setInvocationContextFlags(InvocationContext ctx) {
       PreInvocationContext pic = flagHolder.get();
-      if (pic.flags.isEmpty()) {
+      if (!pic.flags.isEmpty()) {
          ctx.setFlags(pic.flags);
       }
 
@@ -727,7 +727,7 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    public AdvancedCache<K, V> getAdvancedCache() {
       return this;
    }
-   
+
    public void compact() {
       for (InternalCacheEntry e : dataContainer) {
          if (e.getKey() instanceof MarshalledValue) {
@@ -801,7 +801,7 @@ public class CacheImpl<K, V> extends CacheSupport<K,V> implements AdvancedCache<
    @Override
    protected void set(K key, V value) {
       withFlags(Flag.SKIP_REMOTE_LOOKUP, Flag.SKIP_CACHE_LOAD)
-         .put(key, value, defaultLifespan, TimeUnit.MILLISECONDS, defaultMaxIdleTime, TimeUnit.MILLISECONDS);
+         .put(key, value, defaultLifespan, MILLISECONDS, defaultMaxIdleTime, MILLISECONDS);
    }
 
 }

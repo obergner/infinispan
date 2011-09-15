@@ -92,7 +92,7 @@ public interface CommandsFactory {
     * @return a PutKeyValueCommand
     */
    PutKeyValueCommand buildPutKeyValueCommand(Object key, Object value, long lifespanMillis, long maxIdleTimeMillis, Set<Flag> flags);
-   
+
    /**
     * Builds a PutKeyLargeObjectCommand
     * @param key key to put
@@ -110,7 +110,7 @@ public interface CommandsFactory {
     * @return a RemoveCommand
     */
    RemoveCommand buildRemoveCommand(Object key, Object value, Set<Flag> flags);
-   
+
    /**
     * Builds a RemoveLargeObjectCommand
     * @param key key to remove

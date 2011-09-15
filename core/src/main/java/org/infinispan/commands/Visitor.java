@@ -55,11 +55,11 @@ public interface Visitor {
    // write commands
 
    Object visitPutKeyValueCommand(InvocationContext ctx, PutKeyValueCommand command) throws Throwable;
-   
+
    Object visitPutKeyLargeObjectCommand(InvocationContext ctx, PutKeyLargeObjectCommand command) throws Throwable;
-   
+
    Object visitRemoveCommand(InvocationContext ctx, RemoveCommand command) throws Throwable;
-   
+
    Object visitRemoveLargeObjectCommand(InvocationContext ctx, RemoveLargeObjectCommand command) throws Throwable;
 
    Object visitReplaceCommand(InvocationContext ctx, ReplaceCommand command) throws Throwable;

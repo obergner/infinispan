@@ -36,8 +36,6 @@ import org.infinispan.util.concurrent.locks.LockManager;
 
 import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAResource;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Collection;
 import java.util.List;
 
@@ -48,7 +46,7 @@ import java.util.List;
  * @since 4.0
  */
 public interface AdvancedCache<K, V> extends Cache<K, V> {
-   
+
    /**
     * A builder-style method that adds flags to any API call.  For example, consider the following code snippet:
     * <pre>

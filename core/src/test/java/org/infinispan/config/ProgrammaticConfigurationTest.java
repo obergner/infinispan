@@ -324,7 +324,7 @@ public class ProgrammaticConfigurationTest extends AbstractInfinispanTest {
       assert 8888L == c.getLockAcquisitionTimeout();
       assert !c.isUseLockStriping();
       assert c.isWriteSkewCheck();
-      
+
       // Test LargeObjectSupport configuration
       assert c.getLargeObjectSupportConfig()
                .getMaximumChunkSizeInBytes()

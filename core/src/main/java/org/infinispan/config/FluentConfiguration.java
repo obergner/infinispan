@@ -860,7 +860,7 @@ interface FluentTypes {
     * this method is called, it automatically enables invocation batching.
     */
    FluentConfiguration.InvocationBatchingConfig invocationBatching();
-   
+
    FluentConfiguration.LargeObjectSupportConfig largeObjectSupport();
 
    Configuration build();
@@ -941,7 +941,7 @@ abstract class AbstractFluentConfigurationBean extends AbstractNamedCacheConfigu
    public FluentConfiguration.InvocationBatchingConfig invocationBatching() {
       return config.invocationBatching.enabled(true);
    }
-   
+
    @Override
    public FluentConfiguration.LargeObjectSupportConfig largeObjectSupport() {
       return config.largeObjectSupport;

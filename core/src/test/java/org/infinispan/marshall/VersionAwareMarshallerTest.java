@@ -292,10 +292,10 @@ public class VersionAwareMarshallerTest extends AbstractInfinispanTest {
 
       RollbackCommand c13 = new RollbackCommand(cacheName, gtx);
       marshallAndAssertEquality(c13);
-      
+
       RemoveLargeObjectCommand c22 = new RemoveLargeObjectCommand("key", null, Collections.<Flag>emptySet());
       marshallAndAssertEquality(c22);
-      
+
       MultipleRpcCommand c99 = new MultipleRpcCommand(Arrays.asList(c2, c5, c6, c8, c10, c12, c13), cacheName);
       marshallAndAssertEquality(c99);
    }

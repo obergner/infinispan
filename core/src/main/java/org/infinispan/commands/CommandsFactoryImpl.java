@@ -145,15 +145,15 @@ public class CommandsFactoryImpl implements CommandsFactory {
    public PutKeyValueCommand buildPutKeyValueCommand(Object key, Object value, long lifespanMillis, long maxIdleTimeMillis, Set<Flag> flags) {
       return new PutKeyValueCommand(key, value, false, false, notifier, lifespanMillis, maxIdleTimeMillis, flags);
    }
-   
+
    public PutKeyLargeObjectCommand buildPutKeyLargeObjectCommand(Object key, InputStream largeObject, long lifespanMillis, long maxIdleTimeMillis, Set<Flag> flags) {
       return new PutKeyLargeObjectCommand(key, largeObject, false, notifier, lifespanMillis, maxIdleTimeMillis, flags);
    }
-   
+
    public RemoveCommand buildRemoveCommand(Object key, Object value, Set<Flag> flags) {
       return new RemoveCommand(key, value, notifier, flags);
    }
-   
+
    public RemoveLargeObjectCommand buildRemoveLargeObjectCommand(Object key, Set<Flag> flags) {
       return new RemoveLargeObjectCommand(key, notifier, flags);
    }

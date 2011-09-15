@@ -36,9 +36,6 @@ import org.infinispan.stats.Stats;
 
 import javax.transaction.TransactionManager;
 import javax.transaction.xa.XAResource;
-
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.Collection;
 import java.util.List;
 
@@ -56,12 +53,7 @@ public abstract class AbstractDelegatingAdvancedCache<K, V> extends AbstractDele
       super(cache);
       this.cache = cache;
    }
-   
-   @Override
-   public StreamingHandler<K> getStreamingHandler() {
-      return cache.getStreamingHandler();
-   }
-   
+
    @Override
    public void addInterceptor(CommandInterceptor i, int position) {
       cache.addInterceptor(i, position);

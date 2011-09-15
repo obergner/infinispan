@@ -89,6 +89,7 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
 
    private static final long serialVersionUID = 5553791890144997466L;
    private static final Log log = LogFactory.getLog(Configuration.class);
+
    // reference to a global configuration
    @XmlTransient
    private GlobalConfiguration globalConfiguration;
@@ -150,7 +151,7 @@ public class Configuration extends AbstractNamedCacheConfigurationBean {
 
    @XmlElement
    DeadlockDetectionType deadlockDetection = new DeadlockDetectionType().setConfiguration(this);
-   
+
    @XmlElement
    QueryConfigurationBean indexing = new QueryConfigurationBean().setConfiguration(this);
 
