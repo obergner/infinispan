@@ -100,6 +100,11 @@
          <artifactId>spring-context</artifactId>
          <scope>compile</scope>
       </dependency>
+	  <dependency>
+		 <groupId>org.springframework.data</groupId>
+		 <artifactId>spring-data-commons-core</artifactId>
+		 <scope>compile</scope>
+	  </dependency> 
       <dependency>
          <groupId>${project.groupId}</groupId>
          <artifactId>infinispan-core</artifactId>
@@ -117,6 +122,11 @@
                <artifactId>avro</artifactId>
             </exclusion>
          </exclusions>
+      </dependency>
+
+      <dependency>
+         <groupId>org.hibernate</groupId>
+         <artifactId>hibernate-search-engine</artifactId>
       </dependency>
 
       <!--Runtime dependencies -->

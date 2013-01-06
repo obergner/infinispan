@@ -175,6 +175,7 @@
       <version.slf4j>1.6.4</version.slf4j>
       <version.solder>3.1.0.Final</version.solder>
       <version.spring>3.1.0.RELEASE</version.spring>
+      <version.spring.data.commons.core>1.4.0.RELEASE</version.spring.data.commons.core>
       <version.spymemcached>2.5</version.spymemcached>
       <version.testng>6.8</version.testng>
       <version.testng.arquillian>6.5.2</version.testng.arquillian>
@@ -812,6 +813,11 @@
             <artifactId>spring-test</artifactId>
             <version>${version.spring}</version>
          </dependency>
+		<dependency>
+			<groupId>org.springframework.data</groupId>
+			<artifactId>spring-data-commons-core</artifactId>
+			<version>${version.spring.data.commons.core}</version>
+		</dependency> 
          <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
