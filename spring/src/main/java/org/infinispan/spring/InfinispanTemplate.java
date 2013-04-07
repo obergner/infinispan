@@ -19,13 +19,20 @@
 package org.infinispan.spring;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.lucene.search.Query;
+import org.hibernate.search.query.dsl.QueryBuilder;
+import org.infinispan.Cache;
 import org.infinispan.CacheException;
 import org.infinispan.api.BasicCache;
+import org.infinispan.query.CacheQuery;
+import org.infinispan.query.Search;
+import org.infinispan.query.SearchManager;
 import org.infinispan.util.concurrent.NotifyingFuture;
 import org.springframework.dao.DataAccessException;
 import org.springframework.util.Assert;
@@ -699,6 +706,21 @@ public class InfinispanTemplate extends AbstractBasicCacheAccessor {
       Assert.notNull(action, "Callback 'action' must not be null");
       try {
          return action.doInInfinispan(getBasicCache());
+      } catch (final CacheException ce) {
+         throw getPersistenceExceptionTranslator().translateExceptionIfPossible(ce);
+      }
+   }
+
+   public <V> List<V> query(final InfinispanQueryCallback<V> queryBuilderCallback, final Class<V> resultClass)
+         throws DataAccessException {
+      Assert.notNull(queryBuilderCallback, "Callback 'queryBuilderCallback' must not be null");
+      try {
+         // FIXME: Remove potentially unsafe cast from BasicCache to Cache
+         final SearchManager searchManager = Search.getSearchManager((Cache<?, ?>) getBasicCache());
+         final QueryBuilder queryBuilder = searchManager.buildQueryBuilderForClass(resultClass).get();
+         final Query luceneQuery = queryBuilderCallback.doWithQueryBuilder(queryBuilder);
+         final CacheQuery cacheQuery = searchManager.getQuery(luceneQuery, resultClass);
+         return (List<V>) cacheQuery.list();
       } catch (final CacheException ce) {
          throw getPersistenceExceptionTranslator().translateExceptionIfPossible(ce);
       }

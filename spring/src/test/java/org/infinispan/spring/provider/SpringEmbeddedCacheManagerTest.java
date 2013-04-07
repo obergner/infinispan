@@ -72,21 +72,22 @@ public class SpringEmbeddedCacheManagerTest {
     */
    @Test
    public final void getCacheShouldReturnTheCacheHavingTheProvidedName() throws IOException {
-      final EmbeddedCacheManager nativeCacheManager = TestCacheManagerFactory.fromStream(
-               SpringEmbeddedCacheManagerTest.class
-                        .getResourceAsStream(NAMED_ASYNC_CACHE_CONFIG_LOCATION));
-      final SpringEmbeddedCacheManager objectUnderTest = new SpringEmbeddedCacheManager(
-               nativeCacheManager);
+      withCacheManager(new CacheManagerCallable(TestCacheManagerFactory.fromStream(SpringEmbeddedCacheManagerTest.class
+            .getResourceAsStream(NAMED_ASYNC_CACHE_CONFIG_LOCATION))) {
+         @Override
+         public void call() {
+            final SpringEmbeddedCacheManager objectUnderTest = new SpringEmbeddedCacheManager(cm);
 
-      final Cache cacheExpectedToHaveTheProvidedName = objectUnderTest
-               .getCache(CACHE_NAME_FROM_CONFIGURATION_FILE);
+            final Cache cacheExpectedToHaveTheProvidedName = objectUnderTest
+                  .getCache(CACHE_NAME_FROM_CONFIGURATION_FILE);
 
-      assertEquals(
-               "getCache("
+            assertEquals(
+                  "getCache("
                         + CACHE_NAME_FROM_CONFIGURATION_FILE
                         + ") should have returned the cache having the provided name. However, the cache returned has a different name.",
-               CACHE_NAME_FROM_CONFIGURATION_FILE, cacheExpectedToHaveTheProvidedName.getName());
-      nativeCacheManager.stop();
+                  CACHE_NAME_FROM_CONFIGURATION_FILE, cacheExpectedToHaveTheProvidedName.getName());
+         }
+      });
    }
 
    /**

@@ -16,20 +16,18 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA  02110-1301, USA.
  */
-package org.infinispan.spring.repository.support.test;
+package org.infinispan.spring;
 
-import org.springframework.data.annotation.Id;
+import org.apache.lucene.search.Query;
+import org.hibernate.search.query.dsl.QueryBuilder;
 
-public class DomainObjectWithIdAnnotation {
+/**
+ * InfinispanQueryCallback.
+ * 
+ * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
+ * @since 6.0.0
+ */
+public interface InfinispanQueryCallback<V> {
 
-   @Id
-   private final String id;
-
-   public DomainObjectWithIdAnnotation(final String id) {
-      this.id = id;
-   }
-
-   public final String getId() {
-      return id;
-   }
+   Query doWithQueryBuilder(QueryBuilder queryBuilder);
 }

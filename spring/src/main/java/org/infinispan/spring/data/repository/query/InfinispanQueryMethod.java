@@ -16,17 +16,33 @@
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA  02110-1301, USA.
  */
-package org.infinispan.spring.repository;
+package org.infinispan.spring.data.repository.query;
 
-import org.springframework.data.repository.CrudRepository;
+import java.lang.reflect.Method;
+
+import org.infinispan.spring.data.repository.InfinispanRepository;
+import org.springframework.data.repository.core.RepositoryMetadata;
+import org.springframework.data.repository.query.QueryMethod;
 
 /**
- * InfinispanRepository.
+ * Infinispan specific {@link QueryMethod}.
  * 
  * @author <a href="mailto:olaf.bergner@gmx.de">Olaf Bergner</a>
  * @since 6.0.0
  */
-public interface InfinispanRepository<T, ID extends java.io.Serializable> extends CrudRepository<T, ID> {
+public class InfinispanQueryMethod extends QueryMethod {
 
-   T save(ID id, T entity);
+   /**
+    * Create a new InfinispanQueryMethod.
+    * 
+    * @param method
+    *           The {@link InfinispanRepository} method to create a Hibernate search query from.
+    *           Must not be {@literal null}.
+    * @param metadata
+    *           The {@link RepositoryMetadata} describing the {@link InfinispanRepository} we are
+    *           dealing with. Must not be {@literal null}.
+    */
+   public InfinispanQueryMethod(final Method method, final RepositoryMetadata metadata) {
+      super(method, metadata);
+   }
 }
